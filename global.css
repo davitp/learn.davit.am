@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.dark .invert-on-dark {
+  filter: invert(1) brightness(1.8);
+}
