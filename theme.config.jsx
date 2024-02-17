@@ -1,6 +1,5 @@
-import { useConfig } from 'nextra-theme-docs'
+import { ThemeSwitch, useConfig } from 'nextra-theme-docs'
 import siteConfig from './site.config'
-import { useRouter } from 'next/router'
 import Image from 'next/image'
 
 /* eslint sort-keys: error */
@@ -68,5 +67,14 @@ export default {
         />
       </>
     )
-  }
+  },
+  navbar: {
+    extraContent: () => {
+      return (
+        <>
+          {ThemeSwitch({ lite: true, className: 'button-switch theme-switch' })}
+        </>
+      )
+    }
+  },
 }

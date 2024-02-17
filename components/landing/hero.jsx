@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 export default function Hero() {
-    return <section className="bg-white dark:bg-gray-900">
+    return <section className="bg-white dark:bg-gray-900 mt-4 lg:mt-0">
         <div className="px-4 mx-auto max-w-screen-xl text-center lg:py-16 lg:px-12">
             <a href="#" className="inline-flex justify-between items-center py-1 px-1 pr-4 mb-7 text-sm text-gray-700 bg-gray-100 rounded-full dark:bg-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700" role="alert">
                 <span className="text-xs bg-primary-600 rounded-full text-white px-4 py-1.5 mr-3">New</span> <span className="text-sm font-medium">Learning portal was updated!</span>
