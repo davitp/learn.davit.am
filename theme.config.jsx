@@ -1,6 +1,7 @@
-import { ThemeSwitch, useConfig } from 'nextra-theme-docs'
+import { useConfig } from 'nextra-theme-docs'
 import siteConfig from './site.config'
 import Image from 'next/image'
+import Footer from 'components/landing/footer'
 
 /* eslint sort-keys: error */
 /**
@@ -27,21 +28,20 @@ export default {
     const title = `${config.title} - Learning Portal`
     const description =
       config.frontMatter.description || 'Learning Portal by Davit Petrosyan'
-    const image = config.frontMatter.image || 'https://nextra.site/og.jpeg'
+    const og = config.frontMatter.image || `https://og.tailgraph.com/og?fontFamily=Roboto&title=${config.title}&titleTailwind=text-gray-800%20font-bold%20text-6xl&text=${description}&textTailwind=text-gray-700%20text-2xl%20mt-4&logoUrl=${siteConfig.website}logo/favicon-32x32.png&logoTailwind=h-8&bgTailwind=bg-white&footer=learn.davit.am&footerTailwind=text-teal-600&t=1708257176882&refresh=1`
     return (
       <>
         <title>{title}</title>
-        <meta property="og:title" content={title} />
+        <meta property="og:title" content={config.title} />
         <meta name="description" content={description} />
         <meta property="og:description" content={description} />
-        <meta name="og:image" content={image} />
-
+        <meta name="og:image" content={og} />
+        <link rel="icon" href="favicon.ico" type="image/x-icon" />
         <meta name="msapplication-TileColor" content="#fff" />
         <meta httpEquiv="Content-Language" content="en" />
         <meta name="apple-mobile-web-app-title" content="Learn with " />
-
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:site" content={`https://${siteConfig.domain}/`} />
+        <meta name="twitter:site" content={siteConfig.website} />
         <link
           rel="apple-touch-icon"
           sizes="180x180"
@@ -68,13 +68,7 @@ export default {
       </>
     )
   },
-  navbar: {
-    extraContent: () => {
-      return (
-        <>
-          {ThemeSwitch({ lite: true, className: 'button-switch theme-switch' })}
-        </>
-      )
-    }
+  footer: {
+    component: () => <Footer />
   },
 }
