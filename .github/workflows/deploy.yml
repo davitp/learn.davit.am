@@ -12,8 +12,8 @@ jobs:
         uses: styfle/cancel-workflow-action@0.9.1
       - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v2
-      with:
-        version: 8
+        with:
+          version: 8
       - name: Use Node.js 20.x
         uses: actions/setup-node@v3
         with:
@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           pnpm i
-          yarn export
+          pnpm export
       - name: Deploy
         run: |
           git remote set-url origin https://git:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
