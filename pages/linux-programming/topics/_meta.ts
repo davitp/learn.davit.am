@@ -1,3 +1,3 @@
 export default {
-  introduction: 'Introduction'
+  'hardware-and-software': 'Hardware and Software'
 }
