@@ -8,7 +8,7 @@ const list = [
     },
     {
         name: 'Linux Programming',
-        url: '/linux-programming/introduction'
+        url: '/linux-programming/topics'
       }
   ]
 
@@ -26,7 +26,7 @@ export default function Footer(){
                        <Link href="/" className="hover:underline me-4 md:me-6">Home</Link>
                    </li>
                    <li>
-                       <Link href="/linux-programming/introduction" className="hover:underline me-4 md:me-6">Linux Programming</Link>
+                       <Link href="/linux-programming/topics" className="hover:underline me-4 md:me-6">Linux Programming</Link>
                    </li>
                    <li>
                        <a href={siteConfig.github} className="hover:underline me-4 md:me-6">GitHub</a>
