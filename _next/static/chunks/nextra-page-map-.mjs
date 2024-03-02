@@ -1,6 +1,7 @@
 import meta from "../../../pages/_meta.ts";
 import linux_programming_meta from "../../../pages/linux-programming/_meta.ts";
 import linux_programming_guides_meta from "../../../pages/linux-programming/guides/_meta.ts";
+import linux_programming_samples_meta from "../../../pages/linux-programming/samples/_meta.ts";
 import linux_programming_tasks_meta from "../../../pages/linux-programming/tasks/_meta.ts";
 import linux_programming_topics_meta from "../../../pages/linux-programming/topics/_meta.ts";
 import operating_systems_meta from "../../../pages/operating-systems/_meta.ts";
@@ -42,6 +43,72 @@ export const pageMap = [{
     route: "/linux-programming",
     frontMatter: {
       "sidebarTitle": "Index"
+    }
+  }, {
+    name: "samples",
+    route: "/linux-programming/samples",
+    children: [{
+      data: linux_programming_samples_meta
+    }, {
+      name: "copy-file",
+      route: "/linux-programming/samples/copy-file",
+      frontMatter: {
+        "sidebarTitle": "Copy File"
+      }
+    }, {
+      name: "create-process",
+      route: "/linux-programming/samples/create-process",
+      frontMatter: {
+        "sidebarTitle": "Create Process"
+      }
+    }, {
+      name: "create-thread",
+      route: "/linux-programming/samples/create-thread",
+      frontMatter: {
+        "sidebarTitle": "Create Thread"
+      }
+    }, {
+      name: "detect-holes",
+      route: "/linux-programming/samples/detect-holes",
+      frontMatter: {
+        "sidebarTitle": "Detect Holes"
+      }
+    }, {
+      name: "make-hole",
+      route: "/linux-programming/samples/make-hole",
+      frontMatter: {
+        "sidebarTitle": "Make Hole"
+      }
+    }, {
+      name: "makefile",
+      route: "/linux-programming/samples/makefile",
+      frontMatter: {
+        "sidebarTitle": "Makefile"
+      }
+    }, {
+      name: "open-file",
+      route: "/linux-programming/samples/open-file",
+      frontMatter: {
+        "sidebarTitle": "Open File"
+      }
+    }, {
+      name: "read-file",
+      route: "/linux-programming/samples/read-file",
+      frontMatter: {
+        "sidebarTitle": "Read File"
+      }
+    }, {
+      name: "redirect-output",
+      route: "/linux-programming/samples/redirect-output",
+      frontMatter: {
+        "sidebarTitle": "Redirect Output"
+      }
+    }]
+  }, {
+    name: "samples",
+    route: "/linux-programming/samples",
+    frontMatter: {
+      "sidebarTitle": "Samples"
     }
   }, {
     name: "tasks",
