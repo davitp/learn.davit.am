@@ -15,7 +15,7 @@ export default {
   'operating-systems': {
     title: 'Operating Systems',
     type: 'page',
-    //display: 'hidden'
+    display: 'hidden'
   },
   // courses: {
   //   title: 'Courses',

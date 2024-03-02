@@ -1,0 +1,18 @@
+# FS-2: Copy a file
+
+### Requirements 
+
+- Write a C++ program **simple-copy** accepting two command line arguments representing source file path and destination file path. 
+- Implement proper error handling to account if not all arguments are passed or if one of arguments is not a valid one. 
+- Copy the content of the **source** file into a **destination** file. If **destination** file already exists, it should be overwritten.  
+
+### Expected result
+
+The resulting application should be able to build and execute from command line as follows:
+
+```sh
+make
+./simple-copy source-file destination-file
+```
+
+The final solution should contain a **Makefile** for the multi-stage build. The Makefile should also contain targets **all** and **clean**. It's recommended to have compiler and compiler flags to be declared as a Makefile variables. Alternatively, **cmake** could also be used instead of make. 

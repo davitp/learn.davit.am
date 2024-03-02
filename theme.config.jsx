@@ -36,6 +36,7 @@ export default {
         <meta name="description" content={description} />
         <meta property="og:description" content={description} />
         <meta name="og:image" content={og} />
+        <meta name="og:image:secure" content={og} />
         <link rel="icon" href="favicon.ico" type="image/x-icon" />
         <meta name="msapplication-TileColor" content="#fff" />
         <meta httpEquiv="Content-Language" content="en" />
