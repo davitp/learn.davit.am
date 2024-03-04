@@ -223,6 +223,12 @@ export const pageMap = [{
       frontMatter: {
         "sidebarTitle": "Hardware and Software"
       }
+    }, {
+      name: "system-calls",
+      route: "/linux-programming/topics/system-calls",
+      frontMatter: {
+        "sidebarTitle": "System Calls"
+      }
     }]
   }, {
     name: "topics",
