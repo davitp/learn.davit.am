@@ -3,6 +3,11 @@ import linux_programming_meta from "../../../pages/linux-programming/_meta.ts";
 import linux_programming_guides_meta from "../../../pages/linux-programming/guides/_meta.ts";
 import linux_programming_samples_meta from "../../../pages/linux-programming/samples/_meta.ts";
 import linux_programming_tasks_meta from "../../../pages/linux-programming/tasks/_meta.ts";
+import linux_programming_tasks_environment_meta from "../../../pages/linux-programming/tasks/environment/_meta.ts";
+import linux_programming_tasks_file_systems_meta from "../../../pages/linux-programming/tasks/file-systems/_meta.ts";
+import linux_programming_tasks_ipc_meta from "../../../pages/linux-programming/tasks/ipc/_meta.ts";
+import linux_programming_tasks_processes_meta from "../../../pages/linux-programming/tasks/processes/_meta.ts";
+import linux_programming_tasks_threads_meta from "../../../pages/linux-programming/tasks/threads/_meta.ts";
 import linux_programming_topics_meta from "../../../pages/linux-programming/topics/_meta.ts";
 import operating_systems_meta from "../../../pages/operating-systems/_meta.ts";
 import operating_systems_topics_meta from "../../../pages/operating-systems/topics/_meta.ts";
@@ -12,8 +17,8 @@ export const pageMap = [{
   name: "index",
   route: "/",
   frontMatter: {
-    "title": "Index",
-    "description": "Description"
+    "title": "Home",
+    "description": "Welcome to new Learning Portal!"
   }
 }, {
   name: "linux-programming",
@@ -116,94 +121,154 @@ export const pageMap = [{
     children: [{
       data: linux_programming_tasks_meta
     }, {
-      name: "array-sum",
-      route: "/linux-programming/tasks/array-sum",
+      name: "environment",
+      route: "/linux-programming/tasks/environment",
+      children: [{
+        data: linux_programming_tasks_environment_meta
+      }, {
+        name: "complex-number",
+        route: "/linux-programming/tasks/environment/complex-number",
+        frontMatter: {
+          "sidebarTitle": "Complex Number"
+        }
+      }, {
+        name: "environment-setup",
+        route: "/linux-programming/tasks/environment/environment-setup",
+        frontMatter: {
+          "sidebarTitle": "Environment Setup"
+        }
+      }]
+    }, {
+      name: "environment",
+      route: "/linux-programming/tasks/environment",
       frontMatter: {
-        "sidebarTitle": "Array Sum"
+        "sidebarTitle": "Environment"
       }
     }, {
-      name: "complex-number",
-      route: "/linux-programming/tasks/complex-number",
+      name: "file-systems",
+      route: "/linux-programming/tasks/file-systems",
+      children: [{
+        data: linux_programming_tasks_file_systems_meta
+      }, {
+        name: "copy-file",
+        route: "/linux-programming/tasks/file-systems/copy-file",
+        frontMatter: {
+          "sidebarTitle": "Copy File"
+        }
+      }, {
+        name: "copy-with-holes",
+        route: "/linux-programming/tasks/file-systems/copy-with-holes",
+        frontMatter: {
+          "sidebarTitle": "Copy with Holes"
+        }
+      }, {
+        name: "manual-append",
+        route: "/linux-programming/tasks/file-systems/manual-append",
+        frontMatter: {
+          "sidebarTitle": "Manual Append"
+        }
+      }, {
+        name: "read-file",
+        route: "/linux-programming/tasks/file-systems/read-file",
+        frontMatter: {
+          "sidebarTitle": "Read File"
+        }
+      }, {
+        name: "redirect-cin",
+        route: "/linux-programming/tasks/file-systems/redirect-cin",
+        frontMatter: {
+          "sidebarTitle": "Redirect Cin"
+        }
+      }, {
+        name: "secure-file-deletion",
+        route: "/linux-programming/tasks/file-systems/secure-file-deletion",
+        frontMatter: {
+          "sidebarTitle": "Secure File Deletion"
+        }
+      }]
+    }, {
+      name: "file-systems",
+      route: "/linux-programming/tasks/file-systems",
       frontMatter: {
-        "sidebarTitle": "Complex Number"
+        "sidebarTitle": "File Systems"
       }
     }, {
-      name: "copy-file",
-      route: "/linux-programming/tasks/copy-file",
+      name: "ipc",
+      route: "/linux-programming/tasks/ipc",
+      children: [{
+        data: linux_programming_tasks_ipc_meta
+      }, {
+        name: "prime-calculator",
+        route: "/linux-programming/tasks/ipc/prime-calculator",
+        frontMatter: {
+          "sidebarTitle": "Prime Calculator"
+        }
+      }, {
+        name: "shared-array",
+        route: "/linux-programming/tasks/ipc/shared-array",
+        frontMatter: {
+          "sidebarTitle": "Shared Array"
+        }
+      }, {
+        name: "signal-echo",
+        route: "/linux-programming/tasks/ipc/signal-echo",
+        frontMatter: {
+          "sidebarTitle": "Signal Echo"
+        }
+      }]
+    }, {
+      name: "ipc",
+      route: "/linux-programming/tasks/ipc",
       frontMatter: {
-        "sidebarTitle": "Copy File"
+        "sidebarTitle": "Ipc"
       }
     }, {
-      name: "copy-with-holes",
-      route: "/linux-programming/tasks/copy-with-holes",
+      name: "processes",
+      route: "/linux-programming/tasks/processes",
+      children: [{
+        data: linux_programming_tasks_processes_meta
+      }, {
+        name: "do-command",
+        route: "/linux-programming/tasks/processes/do-command",
+        frontMatter: {
+          "sidebarTitle": "Do Command"
+        }
+      }, {
+        name: "interactive-shell",
+        route: "/linux-programming/tasks/processes/interactive-shell",
+        frontMatter: {
+          "sidebarTitle": "Interactive Shell"
+        }
+      }]
+    }, {
+      name: "processes",
+      route: "/linux-programming/tasks/processes",
       frontMatter: {
-        "sidebarTitle": "Copy with Holes"
+        "sidebarTitle": "Processes"
       }
     }, {
-      name: "do-command",
-      route: "/linux-programming/tasks/do-command",
-      frontMatter: {
-        "sidebarTitle": "Do Command"
-      }
+      name: "threads",
+      route: "/linux-programming/tasks/threads",
+      children: [{
+        data: linux_programming_tasks_threads_meta
+      }, {
+        name: "array-sum",
+        route: "/linux-programming/tasks/threads/array-sum",
+        frontMatter: {
+          "sidebarTitle": "Array Sum"
+        }
+      }, {
+        name: "thread-pool",
+        route: "/linux-programming/tasks/threads/thread-pool",
+        frontMatter: {
+          "sidebarTitle": "Thread Pool"
+        }
+      }]
     }, {
-      name: "environment-setup",
-      route: "/linux-programming/tasks/environment-setup",
+      name: "threads",
+      route: "/linux-programming/tasks/threads",
       frontMatter: {
-        "sidebarTitle": "Environment Setup"
-      }
-    }, {
-      name: "interactive-shell",
-      route: "/linux-programming/tasks/interactive-shell",
-      frontMatter: {
-        "sidebarTitle": "Interactive Shell"
-      }
-    }, {
-      name: "manual-append",
-      route: "/linux-programming/tasks/manual-append",
-      frontMatter: {
-        "sidebarTitle": "Manual Append"
-      }
-    }, {
-      name: "prime-calculator",
-      route: "/linux-programming/tasks/prime-calculator",
-      frontMatter: {
-        "sidebarTitle": "Prime Calculator"
-      }
-    }, {
-      name: "read-file",
-      route: "/linux-programming/tasks/read-file",
-      frontMatter: {
-        "sidebarTitle": "Read File"
-      }
-    }, {
-      name: "redirect-cin",
-      route: "/linux-programming/tasks/redirect-cin",
-      frontMatter: {
-        "sidebarTitle": "Redirect Cin"
-      }
-    }, {
-      name: "secure-file-deletion",
-      route: "/linux-programming/tasks/secure-file-deletion",
-      frontMatter: {
-        "sidebarTitle": "Secure File Deletion"
-      }
-    }, {
-      name: "shared-array",
-      route: "/linux-programming/tasks/shared-array",
-      frontMatter: {
-        "sidebarTitle": "Shared Array"
-      }
-    }, {
-      name: "signal-echo",
-      route: "/linux-programming/tasks/signal-echo",
-      frontMatter: {
-        "sidebarTitle": "Signal Echo"
-      }
-    }, {
-      name: "thread-pool",
-      route: "/linux-programming/tasks/thread-pool",
-      frontMatter: {
-        "sidebarTitle": "Thread Pool"
+        "sidebarTitle": "Threads"
       }
     }]
   }, {
