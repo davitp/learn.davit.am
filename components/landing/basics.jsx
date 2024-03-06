@@ -7,7 +7,7 @@ import UbuntuLogo from "@components/logos/ubuntu-logo";
 
 export default function Basics() {
 
-  return <section className="bg-white dark:bg-gray-900 mb-12">
+  return <section className="bg-white dark:bg-gray-900 pb-12">
     <div className="px-4 mx-auto max-w-screen-xl lg:px-6">
       <div className="max-w-screen-md mx-auto mb-8 lg:mb-16">
         <h2 className="mb-4 text-center text-2xl tracking-tight font-extrabold text-gray-900 dark:text-white">Start from basics</h2>

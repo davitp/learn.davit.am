@@ -16,6 +16,10 @@ export default {
     content: 'Make suggestion on GitHub'
   },
   faviconGlyph: '✦',
+  sidebar: {
+    autoCollapse: false,
+    defaultMenuCollapseLevel: 2
+  },
   logo: () => {
     return (
       <span className="flex items-center text-bold hover:opacity-75 ltr:mr-auto rtl:ml-auto">

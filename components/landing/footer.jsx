@@ -1,17 +1,6 @@
 import Link from "next/link"
 import siteConfig from "site.config"
 
-const list = [
-    {
-      name: 'Home',
-      url: '/'
-    },
-    {
-        name: 'Linux Programming',
-        url: '/linux-programming/topics'
-      }
-  ]
-
 export default function Footer(){
    
    return  <footer className="bg-gray-50 rounded-lg shadow dark:bg-gray-900">
@@ -26,7 +15,7 @@ export default function Footer(){
                        <Link href="/" className="hover:underline me-4 md:me-6">Home</Link>
                    </li>
                    <li>
-                       <Link href="/linux-programming/topics" className="hover:underline me-4 md:me-6">Linux Programming</Link>
+                       <Link href="/linux-programming" className="hover:underline me-4 md:me-6">Linux Programming</Link>
                    </li>
                    <li>
                        <a href={siteConfig.github} className="hover:underline me-4 md:me-6">GitHub</a>
