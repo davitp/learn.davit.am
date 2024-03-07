@@ -32,7 +32,7 @@ export default {
     const title = `${config.title} - Learning Portal`
     const description =
       config.frontMatter.description || 'Learning Portal by Davit Petrosyan'
-    const og = config.frontMatter.image || `https://og.tailgraph.com/og?fontFamily=Roboto&title=${config.title}&titleTailwind=text-gray-800%20font-bold%20text-6xl&text=${description}&textTailwind=text-gray-700%20text-2xl%20mt-4&logoUrl=${siteConfig.website}logo/favicon-32x32.png&logoTailwind=h-8&bgTailwind=bg-white&footer=learn.davit.am&footerTailwind=text-teal-600&t=1708257176882&refresh=1`
+    const og = config.frontMatter.image || `/images/default-og.png`
     return (
       <>
         <title>{title}</title>
