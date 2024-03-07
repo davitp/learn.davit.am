@@ -283,6 +283,12 @@ export const pageMap = [{
     children: [{
       data: linux_programming_topics_meta
     }, {
+      name: "file-systems-overview",
+      route: "/linux-programming/topics/file-systems-overview",
+      frontMatter: {
+        "sidebarTitle": "File Systems Overview"
+      }
+    }, {
       name: "hardware-and-software",
       route: "/linux-programming/topics/hardware-and-software",
       frontMatter: {
