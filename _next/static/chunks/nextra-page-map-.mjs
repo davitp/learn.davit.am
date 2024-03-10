@@ -295,6 +295,12 @@ export const pageMap = [{
         "sidebarTitle": "Hardware and Software"
       }
     }, {
+      name: "linux-programming",
+      route: "/linux-programming/topics/linux-programming",
+      frontMatter: {
+        "sidebarTitle": "Linux Programming"
+      }
+    }, {
       name: "system-calls",
       route: "/linux-programming/topics/system-calls",
       frontMatter: {
