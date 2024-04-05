@@ -283,6 +283,12 @@ export const pageMap = [{
     children: [{
       data: linux_programming_topics_meta
     }, {
+      name: "file-systems-api",
+      route: "/linux-programming/topics/file-systems-api",
+      frontMatter: {
+        "sidebarTitle": "File Systems API"
+      }
+    }, {
       name: "file-systems-overview",
       route: "/linux-programming/topics/file-systems-overview",
       frontMatter: {
