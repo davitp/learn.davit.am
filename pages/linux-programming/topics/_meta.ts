@@ -3,5 +3,6 @@ export default {
   'file-systems-overview': 'File Systems Overview',
   'linux-programming': 'Linux Programming',
   'system-calls': 'System Calls',
-  'file-systems-api': 'File Systems API'
+  'file-systems-api': 'File Systems API',
+  'advanced-input-output': 'Advanced File IO'
 }

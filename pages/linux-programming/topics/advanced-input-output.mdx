@@ -1,0 +1,56 @@
+---
+description: Exploring more advanced functionalities provided by the File Systems API for file manipulations. Understanding concepts such as file descriptor duplication and granular control over file descriptors during file operations.
+---
+
+# Advanced IO with File Systems API
+
+## Overview
+- Exploring more advanced functionalities provided by the File Systems API for file manipulations.
+- Understanding concepts such as file descriptor duplication and granular control over file descriptors during file operations.
+- Delving into the seek operation and its various modes, including handling holes and sparse files.
+
+## Outline
+### Controlling Standard Input, Output, and Error Streams
+    - Understanding file descriptor duplication with functions like dup and dup2.
+    - Exploring their applications in controlling standard streams for input/output redirection.
+
+### Granular Control Over Open File Descriptors
+    - Examining advanced options for opening files, including truncate-on-open, create-if-does-not-exist, and temporary files.
+    - Understanding how these options provide more flexibility and control in file handling.
+
+### Seek Operation (lseek) on Open Files
+    - Explaining the seek operation and its significance in navigating through files.
+    - Understanding various modes of seeking the file and their applications.
+
+### Holes and Sparse Files
+    - Understanding the concept of holes and sparse files.
+    - Exploring how to create sparse files using the seek operation and detecting holes within files.
+
+## Practice
+### Advanced File Operations Using Shell
+    - Practical exercises involving advanced file operations in the shell, such as stream redirection, input/output piping, and utilities like grep and dd.
+    - Demonstrating how to leverage shell capabilities for efficient file handling.
+
+### Random File Access Using lseek
+    - Hands-on exercises to perform read and write operations at random file locations using the lseek function.
+    - Understanding the importance of random access in certain file manipulation scenarios.
+
+### Creating Sparse Files and Detecting Holes
+    - Practical demonstrations of creating sparse files using the lseek operation.
+    - Exercises to detect and handle holes within sparse files for optimized file storage.
+
+### References
+   - [Linux manual page - dup(2)](https://man7.org/linux/man-pages/man2/dup.2.html)
+   - [Linux manual page - lseek(3p)](https://man7.org/linux/man-pages/man2/lseek.2.html)
+   - [lseek() in C/C++ to read the alternate nth byte and write it in another file](https://www.geeksforgeeks.org/lseek-in-c-to-read-the-alternate-nth-byte-and-write-it-in-another-file/)
+
+### Homework
+   - [FS-4: Redirect standard input](/linux-programming/tasks/file-systems/redirect-cin/)
+   - [FS-5: Manaul append](/linux-programming/tasks/file-systems/manual-append/)
+   - [FS-10: Copy a file accounting holes](/linux-programming/tasks/file-systems/copy-with-holes/)
+
+### Samples
+   - [Redirect standard output and error](/linux-programming/samples/redirect-output/)
+   - [Create a file with holes](/linux-programming/samples/make-hole/)
+   - [Detect holes in the file](/linux-programming/samples/detect-holes/)
+   

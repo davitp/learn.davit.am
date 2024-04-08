@@ -23,7 +23,7 @@ export default {
   logo: () => {
     return (
       <span className="flex items-center text-bold hover:opacity-75 ltr:mr-auto rtl:ml-auto">
-          <Image src="/logo/favicon-32x32.png" width={32} height={32} className="mr-2" />
+          <Image src="/logo/favicon-32x32.png" alt="Learning Portal" priority={true} width={32} height={32} className="mr-2" />
           Learning Portal
       </span>
     )},
@@ -47,6 +47,7 @@ export default {
         <meta name="apple-mobile-web-app-title" content="Learn with " />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content={siteConfig.website} />
+        <meta name="google-site-verification" content="isie0rC00j0ZnWVxCH0DQTojSH8BK6IRAK7ZhMuvvs4" />
         <link
           rel="apple-touch-icon"
           sizes="180x180"
