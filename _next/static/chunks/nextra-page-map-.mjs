@@ -343,11 +343,25 @@ export const pageMap = [{
         "sidebarTitle": "Linux Programming"
       }
     }, {
+      name: "processes",
+      route: "/linux-programming/topics/processes",
+      frontMatter: {
+        "description": "Explore the fundamentals of Unix process management. Discover key concepts such as processes, virtual memory, and creation workflows. Master command line arguments and environment variables for efficient process control. Elevate your understanding of Unix systems today.",
+        "sidebarTitle": "Processes"
+      }
+    }, {
       name: "system-calls",
       route: "/linux-programming/topics/system-calls",
       frontMatter: {
         "description": "Understanding the essential aspects of communication between hardware and software. Exploring the functionality exposed by operating systems and the role of System Calls.",
         "sidebarTitle": "System Calls"
+      }
+    }, {
+      name: "threads",
+      route: "/linux-programming/topics/threads",
+      frontMatter: {
+        "description": "Unlock threading's power with our guide! Learn memory layout, thread essentials, and Pthread library mastery. Practice with hands-on exercises. Start mastering parallelism and concurrency now!",
+        "sidebarTitle": "Threads"
       }
     }]
   }, {
