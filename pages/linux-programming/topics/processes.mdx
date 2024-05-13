@@ -1,0 +1,61 @@
+---
+description: Explore the fundamentals of Unix process management. Discover key concepts such as processes, virtual memory, and creation workflows. Master command line arguments and environment variables for efficient process control. Elevate your understanding of Unix systems today.
+---
+
+# Overview of Unix Processes
+
+## Outline
+### Definition of Process and Process Tree
+    - Understanding the concept of a process as a program in execution state.
+    - Introduction to the init process and the hierarchical tree structure of processes.
+
+### Introduction to Virtual Memory
+    - Brief overview of virtual memory and its role in process execution.
+    - Explaining concepts such as pages and page tables within the virtual memory of a process.
+
+### Properties of a Process
+    - Exploring key properties of processes, including process ID (pid) and file descriptor table.
+    - Understanding other process-related attributes essential for management and identification.
+
+### Process Creation Workflow
+    - Understanding the process creation workflow through functions like fork and clone.
+    - Explaining the parent-child relationship and the lifecycle of a process.
+
+### Execution of Programs in Processes
+    - Overview of executing programs within a process using exec* functions.
+    - Understanding how these functions replace the current process image with a new one.
+
+### References
+    - [ECE 252 Lecture 5: Processes in UNIX](https://www.youtube.com/watch?v=RLl4vmErFgM)
+    - [The Exec Family of Functions](https://www.baeldung.com/linux/exec-functions)
+    - [The fork function in C](https://www.youtube.com/watch?v=cex9XrZCU14)
+    - [Waiting for processes to finish in C](https://www.youtube.com/watch?v=tcYo6hipaSA)
+
+## Practice
+### Practical Overview of the Process Tree
+    - Hands-on exploration of the process tree using shell commands like ps.
+    - Understanding the structure and relationships within the process hierarchy.
+
+### Demonstration of Process Lifecycle
+    - Writing a simple program to demonstrate the lifecycle of a process using fork, wait, and exec functions.
+    - Practical exercises to illustrate process creation, execution, and termination.
+
+### Usage of Command Line Arguments and Environment Variables
+    - Demonstrating the usage of command line arguments with exec functions.
+    - Understanding the inheritance of environment variables between parent and child processes.
+
+### References
+   - [Linux manual page - fork(2)](https://man7.org/linux/man-pages/man2/fork.2.html)
+   - [Linux manual page - wait(2)](https://man7.org/linux/man-pages/man2/wait.2.html)
+   - [Linux manual page - clone(2)](https://man7.org/linux/man-pages/man2/clone.2.html)
+   - [Linux manual page - exec(3)](https://man7.org/linux/man-pages/man3/exec.3.html)
+   - [Example of fork() in C](https://www.geeksforgeeks.org/fork-system-call/)
+   - [Fork System Call in Operating System](https://www.geeksforgeeks.org/fork-system-call-in-operating-system/)
+
+### Homework
+   - [PS-1: Do command](/linux-programming/tasks/processes/do-command/)
+   - [PS-2: Interactive shell](/linux-programming/tasks/processes/interactive-shell/)
+
+### Samples
+   - [Creating a process](/linux-programming/samples/create-process/)
+   

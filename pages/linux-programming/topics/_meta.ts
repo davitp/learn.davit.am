@@ -4,5 +4,7 @@ export default {
   'linux-programming': 'Linux Programming',
   'system-calls': 'System Calls',
   'file-systems-api': 'File Systems API',
-  'advanced-input-output': 'Advanced File IO'
+  'advanced-input-output': 'Advanced File IO',
+  'processes': 'Processes',
+  'threads': 'Threads'
 }
