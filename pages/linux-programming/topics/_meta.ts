@@ -6,5 +6,6 @@ export default {
   'file-systems-api': 'File Systems API',
   'advanced-input-output': 'Advanced File IO',
   'processes': 'Processes',
-  'threads': 'Threads'
+  'threads': 'Threads',
+  'synchronization': 'Synchronization'
 }
