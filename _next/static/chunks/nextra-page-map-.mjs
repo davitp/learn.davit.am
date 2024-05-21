@@ -350,6 +350,20 @@ export const pageMap = [{
         "sidebarTitle": "Processes"
       }
     }, {
+      name: "producer-consumer",
+      route: "/linux-programming/topics/producer-consumer",
+      frontMatter: {
+        "description": "Understand and solve the producer-consumer problem in multi-threaded environments. Learn key concepts, solution strategies with mutexes, semaphores, and conditional variables. Practice writing and optimizing producer-consumer programs.",
+        "sidebarTitle": "Producer Consumer"
+      }
+    }, {
+      name: "synchronization",
+      route: "/linux-programming/topics/synchronization",
+      frontMatter: {
+        "description": "Learn to tackle synchronization problems in multi-threaded environments. Understand race conditions, atomicity, and critical sections. Explore mutexes, semaphores, and spin locks. Practice solving race conditions and optimizing performance.",
+        "sidebarTitle": "Synchronization"
+      }
+    }, {
       name: "system-calls",
       route: "/linux-programming/topics/system-calls",
       frontMatter: {
