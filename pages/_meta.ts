@@ -7,13 +7,8 @@ export default {
       layout: 'raw'
     }
   },
-  'linux-programming': {
-    title: 'Linux Programming',
+  'system-programming': {
+    title: 'System Programming',
     type: 'page'
-  },
-  'operating-systems': {
-    title: 'Operating Systems',
-    type: 'page',
-    display: 'hidden'
   }
 }

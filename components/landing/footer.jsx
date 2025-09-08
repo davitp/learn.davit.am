@@ -15,7 +15,7 @@ export default function Footer(){
                        <Link href="/" className="hover:underline me-4 md:me-6">Home</Link>
                    </li>
                    <li>
-                       <Link href="/linux-programming" className="hover:underline me-4 md:me-6">Linux Programming</Link>
+                       <Link href="/system-programming" className="hover:underline me-4 md:me-6">System Programming</Link>
                    </li>
                    <li>
                        <a href={siteConfig.github} className="hover:underline me-4 md:me-6">GitHub</a>
