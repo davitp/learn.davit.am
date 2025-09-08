@@ -1,0 +1,1 @@
+(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[6928],{2261:function(n,_,t){(window.__NEXT_P=window.__NEXT_P||[]).push(["/_operating-systems/topics/_meta",function(){return t(957)}])},957:function(n,_,t){"use strict";t.r(_),t.d(_,{__N_SSG:function(){return u}});var u=!0;_.default=()=>null}},function(n){n.O(0,[2888,9774,179],function(){return n(n.s=2261)}),_N_E=n.O()}]);
