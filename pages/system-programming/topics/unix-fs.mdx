@@ -1,0 +1,79 @@
+---
+description: Explore the Linux shell in depth and learn how files, directories, permissions, users, and links are organized in a Unix-like system.
+---
+
+# Unix Filesystem Basics
+
+## Overview
+Building on the introductory tour of Linux, this week deepens your understanding of the command-line interface and the structure of the Unix filesystem.  
+You will learn how to use shell commands effectively, explore standard directories and their purposes, understand file types (regular files, directories, devices, links), and manage users, groups, and permissions.
+
+By the end of this week you should be able to confidently navigate the filesystem, interpret file metadata, and control access rights using the shell.
+
+---
+
+## Key Concepts
+- The shell as an interface: command syntax, arguments, options  
+- Command synopsis and using `man` pages  
+- Standard Linux directory hierarchy (`/bin`, `/etc`, `/home`, `/var`, `/proc`, `/dev`, …)  
+- File types: regular, directory, character/block devices, sockets, FIFOs  
+- Hard links vs. symbolic (soft) links  
+- Users, groups, and ownership model  
+- File permissions: read/write/execute, `chmod`, `chown`, `chgrp`  
+
+---
+
+## Practice / Lab
+- **Shell Exploration:**  
+  - Use `man`, `which`, `type` to discover command info  
+  - Practice navigation with `cd`, `pwd`, `ls -l`, `tree`  
+- **Filesystem Walk:**  
+  - Inspect the top-level folders under `/`  
+  - Explore `/proc` and `/dev` for virtual and device files  
+- **Working with Links:**  
+  - Create hard and symbolic links (`ln`, `ln -s`) and examine inode numbers with `ls -i`  
+- **Permissions Management:**  
+  - Check file metadata with `ls -l`  
+  - Change mode and ownership (`chmod`, `chown`, `chgrp`)  
+  - Experiment with `umask` and default file permissions  
+- **Users & Groups:**  
+  - Inspect `/etc/passwd` and `/etc/group`  
+  - Use `id`, `who`, `groups` to view account information  
+
+---
+
+## References & Resources
+
+**Required**
+- [Filesystem Hierarchy Standard (FHS)](https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html)  
+- [Linux File Types (The Linux Documentation Project)](https://tldp.org/LDP/intro-linux/html/sect_03_01.html)  
+- [GNU Coreutils Manual](https://www.gnu.org/software/coreutils/manual/coreutils.html)  
+- [The Unix File System](https://homepages.uc.edu/~thomam/Intro_Unix_Text/File_System.html)
+- [ECE 252 Lecture 3: The File System](https://www.youtube.com/watch?v=bs9yXzKLQuY)
+- [The Unix File System (GeeksForGeeks)](https://www.geeksforgeeks.org/unix-file-system/)
+- [Linux File System Explained](https://www.youtube.com/watch?v=HbgzrKJvDRw)
+- [Linux File Permissions Explained](https://www.redhat.com/sysadmin/linux-file-permissions-explained)
+- [File Permissions](https://www.youtube.com/watch?v=LnKoncbQBsM)
+- [Linux для Начинающих - Права Доступа и владения файлами и директориями (RUS)](https://www.youtube.com/watch?v=dR4DIo7HYoU)
+
+**Optional / Enrichment**
+- [Linux Journey: The Shell](https://linuxjourney.com/lesson/the-shell)  
+- [Linux Journey: Filesystem](https://linuxjourney.com/lesson/the-filesystem)  
+- [Permissions Explained (DigitalOcean)](https://www.digitalocean.com/community/tutorials/an-introduction-to-linux-permissions)  
+- [Linux Commands Part Two: Working With Files](https://www.allhandsontech.com/linux/linux-commands-files/)
+- [60 Linux Commands to Know](https://www.youtube.com/watch?v=gd7BXuUQ91w)
+- [Basic Linux Commands](https://support.cs.wm.edu/index.php/tips-and-tricks/basic-linux-commands)
+
+**Tools**
+- `ls`, `cd`, `pwd`, `man`, `file`, `stat`, `tree`  
+- `ln`, `chmod`, `chown`, `groups`, `id`  
+
+---
+
+## Quiz (Self-check)
+1. What is the difference between a hard link and a symbolic link?  
+2. Which directory holds configuration files for most system services?  
+3. What do the three sets of characters in `rwxr-xr--` represent?  
+4. How can you find the manual page for a command?  
+5. Which virtual directory contains information about running processes?
+
