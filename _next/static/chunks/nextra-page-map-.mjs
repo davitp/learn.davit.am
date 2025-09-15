@@ -434,6 +434,13 @@ export const pageMap = [{
         "description": "Learn the fundamentals of operating systems, the Linux kernel, GNU/Linux distributions, and basic shell usage. Set up your Linux environment and development tools for system programming.",
         "sidebarTitle": "Intro"
       }
+    }, {
+      name: "unix-fs",
+      route: "/system-programming/topics/unix-fs",
+      frontMatter: {
+        "description": "Explore the Linux shell in depth and learn how files, directories, permissions, users, and links are organized in a Unix-like system.",
+        "sidebarTitle": "Unix Fs"
+      }
     }]
   }, {
     name: "topics",
