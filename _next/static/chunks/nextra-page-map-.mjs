@@ -428,6 +428,13 @@ export const pageMap = [{
     children: [{
       data: system_programming_topics_meta
     }, {
+      name: "compilation",
+      route: "/system-programming/topics/compilation",
+      frontMatter: {
+        "description": "Learn the full compilation workflow in Linux — from preprocessing to linking — using a simple Hello World program. Explore the role of gcc, make, and Makefiles in automating builds.",
+        "sidebarTitle": "Compilation"
+      }
+    }, {
       name: "intro",
       route: "/system-programming/topics/intro",
       frontMatter: {
