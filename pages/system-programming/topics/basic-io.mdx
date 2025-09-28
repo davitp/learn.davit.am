@@ -1,0 +1,100 @@
+---
+description: Introduction to system calls, kernel-user interaction, error handling, and file I/O via file descriptors in Linux.
+---
+
+# System Calls and Basic File I/O
+
+## Overview
+This week marks the beginning of **direct interaction with the kernel**.  
+Students will learn what a **system call (syscall)** is, how it bridges user space and kernel space, and how errors are communicated via `errno`.  
+
+We then explore **file descriptors**, the foundation of Linux’s “everything is a file” philosophy, and practice with fundamental file-related system calls: `creat`, `open`, `read`, `write`, and `close`.
+
+---
+
+## Key Concepts
+- **System Calls**
+  - Role of syscalls in OS design  
+  - User mode vs. kernel mode  
+  - Interrupts, traps, and context switching  
+  - `syscall` interface vs. library wrappers (glibc)  
+
+- **Error Handling**
+  - Return values (`-1` convention)  
+  - `errno` global variable  
+  - Using `perror()` and `strerror()`  
+
+- **File Descriptors**
+  - Concept of file descriptors (integers representing open files)  
+  - Standard descriptors: stdin (0), stdout (1), stderr (2)  
+  - “Everything is a file” in Unix: devices, pipes, sockets  
+
+- **Essential File System Calls**
+  - `creat()`, `open()`, `read()`, `write()`, `close()`  
+  - Flags: `O_RDONLY`, `O_WRONLY`, `O_RDWR`, `O_CREAT`, `O_APPEND`, etc.  
+  - Permissions and the `umask` effect  
+  - Differences between system calls and stdio (`fopen`, `fread`, etc.)  
+
+---
+
+## Practice / Lab
+- **Syscall Tracing**
+  - Use `strace ls` to observe syscalls in action  
+  - Identify `open`, `read`, `write`, `close` in the trace  
+
+- **Error Handling**
+  - Write a C program to open a non-existent file, print error with `perror`  
+
+- **File I/O Basics**
+  - Write a program that:  
+    - Creates a file with `creat()`  
+    - Writes a string to it with `write()`  
+    - Reads it back with `read()` and prints to stdout  
+    - Closes the file descriptor  
+
+- **Exploring Descriptors**
+  - Duplicate descriptors with `dup`/`dup2`  
+  - Redirect output of a program into a file with shell redirection and confirm with code  
+
+---
+
+## Homework
+- [FS-1: Read from the file](/system-programming/tasks/file-systems/read-file/)
+- [FS-2: Copy a file](/system-programming/tasks/file-systems/copy-file/)
+- [FS-3: Secure file deletion](/system-programming/tasks/file-systems/secure-file-deletion/)
+
+---
+
+## References & Resources
+
+**Required**  
+- [The Linux Programming Interface – Kerrisk, Ch. 4–5: System Calls & File I/O](https://man7.org/tlpi/)  
+- [File Descriptor (Wiki)](https://en.wikipedia.org/wiki/File_descriptor)
+- [Handling a File by its Descriptor in C](https://www.codequoi.com/en/handling-a-file-by-its-descriptor-in-c/)
+- [OS5 - File Descriptors, File Descriptor Table](https://www.youtube.com/watch?v=crd2hgzBVTo)
+
+**Optional**  
+- [Beej’s Guide to Unix IPC (intro chapters)](https://beej.us/guide/bgipc/)  
+- [Linux Syscalls Table](https://filippo.io/linux-syscall-table/)  
+- [Linux manual page - open(2)](https://man7.org/linux/man-pages/man2/open.2.html)
+- [Linux manual page - creat(3p)](https://man7.org/linux/man-pages/man3/creat.3p.html)
+- [Linux manual page - read(2)](https://man7.org/linux/man-pages/man2/read.2.html)
+- [Linux manual page - write(2)](https://man7.org/linux/man-pages/man2/write.2.html)
+- [Linux manual page - close(2)](https://man7.org/linux/man-pages/man2/close.2.html)
+- [Linux manual page - fcntl(2)](https://man7.org/linux/man-pages/man2/fcntl.2.html)
+- [Linux manual page - errno(3)](https://man7.org/linux/man-pages/man3/errno.3.html)
+- [errno – C library](https://man7.org/linux/man-pages/man3/errno.3.html) 
+- [Reading and Writing Files in C, two ways (fopen vs. open)](https://www.youtube.com/watch?v=BQJBe4IbsvQ)
+
+**Tools**  
+- `strace`, `errno`, `perror`, `man`  
+
+---
+
+## Quiz (Self-check)
+1. What distinguishes a system call from a regular library function?  
+2. Which system calls are involved when reading a file from disk?  
+3. What values are reserved for stdin, stdout, and stderr file descriptors?  
+4. How does `errno` get set, and how should you properly print its meaning?  
+5. What is the difference between `open` and `creat`?  
+
