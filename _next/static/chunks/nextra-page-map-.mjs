@@ -428,6 +428,13 @@ export const pageMap = [{
     children: [{
       data: system_programming_topics_meta
     }, {
+      name: "basic-io",
+      route: "/system-programming/topics/basic-io",
+      frontMatter: {
+        "description": "Introduction to system calls, kernel-user interaction, error handling, and file I/O via file descriptors in Linux.",
+        "sidebarTitle": "Basic Io"
+      }
+    }, {
       name: "compilation",
       route: "/system-programming/topics/compilation",
       frontMatter: {
