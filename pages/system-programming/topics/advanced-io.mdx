@@ -1,0 +1,107 @@
+---
+description: Advanced file I/O in Linux — working with file descriptors, duplication, seeking, sparse files, and file control operations.
+---
+
+# Advanced File I/O
+
+## Overview
+This week extends the foundation of Linux file I/O by exploring **advanced file descriptor manipulation** and **low-level file positioning**.  
+Students will learn how to duplicate file descriptors, control file behavior using `fcntl`, and manage files beyond simple read/write operations — including **seeking, truncation, and sparse file handling**.
+
+By the end of this week, students will have a complete understanding of how Linux manages file descriptors and how processes interact with files efficiently and flexibly.
+
+---
+
+## Key Concepts
+
+### File Descriptor Duplication
+- `dup()` and `dup2()` system calls  
+- File descriptor table and shared open file descriptions  
+- Standard output redirection example with `dup2()`  
+- Relationship between `dup2()` and shell redirection  
+
+### File Positioning
+- The `lseek()` system call: repositioning file offsets  
+- Seeking modes:  
+  - `SEEK_SET` – from beginning  
+  - `SEEK_CUR` – from current position  
+  - `SEEK_END` – from end of file  
+- Practical uses: appending, measuring file size, random access  
+
+### Sparse Files and Holes
+- Concept of holes (unallocated regions in files)  
+- Creating and inspecting sparse files  
+- Comparing allocated and logical sizes  
+- `SEEK_DATA` and `SEEK_HOLE` (modern extensions for efficient traversal)  
+
+### File Control and Management
+- The `fcntl()` system call:  
+  - Duplicating descriptors (`F_DUPFD`)  
+  - Managing flags (`FD_CLOEXEC`, `O_APPEND`, `O_NONBLOCK`)  
+- Truncating files with `ftruncate()`  
+- Retrieving file information with `fstat()`  
+
+---
+
+## Practice / Lab
+
+### Descriptor Duplication
+- Redirect program output to files using file descriptor duplication.  
+- Explore descriptor inheritance and redirection behavior.  
+
+### File Positioning and Sparse Files
+- Create files with gaps using `lseek()` to demonstrate sparse allocation.  
+- Compare logical and physical file sizes using shell utilities.  
+
+### File Control and Metadata
+- Use `fcntl()` to retrieve and modify descriptor properties.  
+- Truncate and inspect file length using system utilities.
+
+---
+
+## Homework
+- [FS-4: Redirect standard input](/system-programming/tasks/file-systems/redirect-cin/)
+- [FS-5: Manaul append](/system-programming/tasks/file-systems/manual-append/)
+- [FS-10: Copy a file accounting holes](/system-programming/tasks/file-systems/copy-with-holes/)
+
+---
+
+### Samples
+   - [Redirect standard output and error](/system-programming/samples/redirect-output/)
+   - [Create a file with holes](/system-programming/samples/make-hole/)
+   - [Detect holes in the file](/system-programming/samples/detect-holes/)
+
+---
+
+## References & Resources
+
+**Required Reading**
+- Kerrisk, *The Linux Programming Interface*  
+    - Chapter 5: File I/O – Deeper Concepts  
+    - Chapter 6: Advanced File I/O  
+
+**Recommended**
+- [Understanding Sparse Files (Red Hat)](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/storage_administration_guide/sparse-files)  
+- [Beej’s Guide – File Descriptors](https://beej.us/guide/bgipc/html/#file-descriptors)  
+- [Linux manual page - fcntl(2)](https://man7.org/linux/man-pages/man2/fcntl.2.html)
+- [Linux manual page - dup(2)](https://man7.org/linux/man-pages/man2/dup.2.html)
+- [Linux manual page - lseek(3p)](https://man7.org/linux/man-pages/man2/lseek.2.html)
+- [lseek() in C/C++ to read the alternate nth byte and write it in another file](https://www.geeksforgeeks.org/lseek-in-c-to-read-the-alternate-nth-byte-and-write-it-in-another-file/)
+
+---
+
+## Quiz (Self-check)
+
+1. What happens to the file offset when a descriptor is duplicated?  
+2. How does `dup2()` differ from shell redirection?  
+3. What is the difference between `SEEK_END` and `SEEK_CUR`?  
+4. How does a sparse file conserve storage space?  
+5. What are the purposes of `SEEK_DATA` and `SEEK_HOLE`?  
+6. What does `FD_CLOEXEC` accomplish in practice?  
+
+---
+
+## Suggested Tools
+- `strace` – observe system calls like `dup2` and `lseek`  
+- `ls`, `du`, `stat` – inspect logical and physical file properties  
+- `hexdump` – verify data placement within sparse files  
