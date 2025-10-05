@@ -428,6 +428,13 @@ export const pageMap = [{
     children: [{
       data: system_programming_topics_meta
     }, {
+      name: "advanced-io",
+      route: "/system-programming/topics/advanced-io",
+      frontMatter: {
+        "description": "Advanced file I/O in Linux — working with file descriptors, duplication, seeking, sparse files, and file control operations.",
+        "sidebarTitle": "Advanced Io"
+      }
+    }, {
       name: "basic-io",
       route: "/system-programming/topics/basic-io",
       frontMatter: {
