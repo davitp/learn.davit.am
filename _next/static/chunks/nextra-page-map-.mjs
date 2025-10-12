@@ -456,6 +456,13 @@ export const pageMap = [{
         "sidebarTitle": "Intro"
       }
     }, {
+      name: "processes",
+      route: "/system-programming/topics/processes",
+      frontMatter: {
+        "description": "Introduction to processes in Linux — process model, virtual memory basics, and core system calls for process creation and management.",
+        "sidebarTitle": "Processes"
+      }
+    }, {
       name: "unix-fs",
       route: "/system-programming/topics/unix-fs",
       frontMatter: {
