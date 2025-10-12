@@ -3,5 +3,6 @@ export default {
   'unix-fs': 'Unix File Systems',
   'compilation': 'Compiling C/C++',
   'basic-io': 'Basic IO',
-  'advanced-io': 'Advanced IO'
+  'advanced-io': 'Advanced IO',
+  'processes': 'Processes',
 }
