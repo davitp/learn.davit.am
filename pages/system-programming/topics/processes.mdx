@@ -1,0 +1,122 @@
+---
+description: Introduction to processes in Linux — process model, virtual memory basics, and core system calls for process creation and management.
+---
+
+# Processes
+
+## Overview
+This week introduces the **process model** — the fundamental abstraction for executing programs in an operating system.  
+Students will learn how processes are created, how they relate to one another, and how Linux represents and manages them.  
+We will also briefly explore **virtual memory** and its role in isolating processes, followed by the main system calls for creating and controlling processes.
+
+By the end of this week, students will understand how programs become running processes, how parent and child processes interact, and how process management underpins multitasking in Linux.
+
+---
+
+## Key Concepts
+
+### What is a Process?
+- A process as an executing program instance  
+- Process attributes: PID, state, program counter, registers, open files  
+- Process lifecycle: creation → execution → termination  
+- Relationship between **programs** and **processes**  
+- Context switching overview  
+
+### Virtual Memory (Brief Overview)
+- Concept of process isolation  
+- Logical vs physical address spaces  
+- Paging: mapping memory in fixed-size blocks (pages)  
+- Role of MMU and page tables (at a high level)  
+- How virtual memory supports multitasking and protection  
+
+### Process Hierarchy and Inheritance
+- The process tree: `init`/`systemd` as ancestor of all processes  
+- Parent and child relationships  
+- Inheritance of environment variables and file descriptors  
+- Process groups and sessions  
+
+### Process Creation and Execution
+- `fork()` — duplicating the current process  
+- Return semantics of `fork()` (0 in child, PID in parent)  
+- `exec()` family — replacing the current process image  
+- `getpid()`, `getppid()` — identifying process lineage  
+- `wait()` and `waitpid()` — synchronizing process termination  
+- Zombies and orphan processes  
+
+---
+
+## Practice / Lab
+
+### Exploring the Process Tree
+- Use shell tools (`ps`, `pstree`, `top`, `htop`) to inspect running processes.  
+- Identify parent-child relationships and PIDs.  
+- Observe behavior when starting background jobs (`&`) and pipelines.
+
+### Process Creation
+- Write a simple program that spawns child processes using `fork()`.  
+- Observe execution order and differences in PID and PPID.  
+
+### Executing New Programs
+- Use `exec()` to replace a process image and observe that it does not return.  
+- Combine `fork()` and `exec()` to launch external commands from your program.
+
+### Process Synchronization
+- Use `wait()` and `waitpid()` to ensure orderly termination of child processes.  
+- Observe zombie processes when a parent does not wait.
+
+---
+
+## Homework
+- [PS-1: Do command](/system-programming/tasks/processes/do-command/)
+- [PS-2: Interactive shell](/system-programming/tasks/processes/interactive-shell/)
+
+---
+
+### Samples
+- [Creating a process](/system-programming/samples/create-process/)
+
+---
+
+## References & Resources
+
+**Required**
+- [ECE 252 Lecture 4: Processes](https://www.youtube.com/watch?v=7pJfIhvnIu0)
+- [ECE 252 Lecture 5: Processes in UNIX](https://www.youtube.com/watch?v=RLl4vmErFgM)
+- [The Exec Family of Functions](https://www.baeldung.com/linux/exec-functions)
+- [The fork function in C](https://www.youtube.com/watch?v=cex9XrZCU14)
+- [Waiting for processes to finish in C](https://www.youtube.com/watch?v=tcYo6hipaSA)
+- Kerrisk, *The Linux Programming Interface*  
+  - Chapter 24: Process Creation  
+  - Chapter 25: Process Termination  
+  - Chapter 26: Executing Programs  
+
+**Recommended**
+- [Linux manual page - fork(2)](https://man7.org/linux/man-pages/man2/fork.2.html)
+- [Linux manual page - wait(2)](https://man7.org/linux/man-pages/man2/wait.2.html)
+- [Linux manual page - clone(2)](https://man7.org/linux/man-pages/man2/clone.2.html)
+- [Linux manual page - exec(3)](https://man7.org/linux/man-pages/man3/exec.3.html)
+- [Example of fork() in C](https://www.geeksforgeeks.org/fork-system-call/)
+- [Fork System Call in Operating System](https://www.geeksforgeeks.org/fork-system-call-in-operating-system/)
+- [Linux Processes and Threads (IBM Developer)](https://developer.ibm.com/articles/l-linux-process-and-threads/)  
+- [Understanding `fork()` and `exec()` (GeeksforGeeks)](https://www.geeksforgeeks.org/fork-exec-wait-system-call/)  
+- [The Process Tree (Red Hat Docs)](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/system_design_guide/assembly_understanding-processes-system-design-guide) 
+
+---
+
+## Quiz (Self-check)
+
+1. What is the difference between a program and a process?  
+2. What does virtual memory achieve in process isolation?  
+3. What are the main differences between `fork()` and `exec()`?  
+4. What is inherited by a child process after `fork()`?  
+5. What happens if a parent process never calls `wait()`?  
+6. What is a zombie process, and how is it removed?  
+7. How do `getpid()` and `getppid()` relate within a process tree?  
+
+---
+
+## Suggested Tools
+- `ps`, `pstree`, `top`, `htop` – inspect running processes  
+- `strace` – trace `fork`, `exec`, `wait` system calls  
+- `pmap` – display memory map of a process  
+- `lsof` – list open files for a given process  
