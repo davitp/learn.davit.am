@@ -463,6 +463,13 @@ export const pageMap = [{
         "sidebarTitle": "Processes"
       }
     }, {
+      name: "threads",
+      route: "/system-programming/topics/threads",
+      frontMatter: {
+        "description": "Introduction to multithreading in Linux using POSIX Threads (pthreads). Understanding thread creation, management, and synchronization.",
+        "sidebarTitle": "Threads"
+      }
+    }, {
       name: "unix-fs",
       route: "/system-programming/topics/unix-fs",
       frontMatter: {
