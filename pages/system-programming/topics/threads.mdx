@@ -1,0 +1,97 @@
+---
+description: Introduction to multithreading in Linux using POSIX Threads (pthreads). Understanding thread creation, management, and synchronization.
+---
+# Multithreading and POSIX Threads
+
+## Overview
+This week introduces **threads** as lightweight units of execution within a process.  
+Students will learn how threads differ from processes, how they share resources, and how to use the **POSIX Threads (pthreads)** API to create, synchronize, and manage them effectively in Linux.
+
+---
+
+## Key Concepts
+- **Threads vs. Processes**
+  - A process has its own memory space; threads share the same address space.
+  - Threads enable concurrent execution within a single process.
+  - Threads are more efficient for parallel tasks that share data.
+
+- **POSIX Threads (pthreads)**
+  - Standardized API for thread programming in UNIX/Linux environments.
+  - Main functions:
+    - `pthread_create()` — create a new thread
+    - `pthread_join()` — wait for a thread to complete
+    - `pthread_exit()` — terminate the current thread
+    - `pthread_self()` — obtain the thread ID
+    - `pthread_detach()` — run thread independently (no `join`)
+
+- **Thread Lifecycle**
+  - States: new → runnable → running → terminated
+  - Resource management: stack, thread ID, attributes
+  - Detached vs. joinable threads and their memory implications
+
+- **Thread Safety**
+  - Shared memory requires careful access to avoid conflicts (to be covered later).
+  - Distinguish between *thread-safe* and *non-thread-safe* library functions.
+
+---
+
+## Practice
+### Thread Creation
+- Write a simple program that spawns multiple threads using `pthread_create()`.
+- Pass arguments to threads and print thread identifiers with `pthread_self()`.
+
+### Joining and Detaching
+- Use `pthread_join()` to synchronize thread completion.
+- Create detached threads using `pthread_detach()` and observe behavior.
+
+### Thread Attributes
+- Experiment with `pthread_attr_t` to set stack size or detach state.
+- Observe resource usage differences using tools like `htop` (`Shift + H`).
+
+### Observation
+- Compare thread vs. process creation times using `time` and simple benchmarks.
+
+---
+
+### Homework
+   - [TH-1: The array summary](/system-programming/tasks/threads/array-sum/)
+
+---
+
+### Samples
+   - [Creating a thread](/system-programming/samples/create-thread/)
+
+---
+
+## References
+
+**Required**
+- [Function Pointer in C](https://www.geeksforgeeks.org/function-pointer-in-c/)
+- [ECE 252 Lecture 10: Threads](https://www.youtube.com/watch?v=NLVEuwWayvA)
+- [ECE 252 Lecture 11: Threads and Concurrency](https://www.youtube.com/watch?v=7v9qCRacIw8)
+- [Параллельное программирование. Лекция 1 (RUS)](https://www.lektorium.tv/lecture/13557)
+- [Introduction to Pthreads](https://tamerlan.dev/introduction-to-pthreads/)
+- *Advanced Programming in the UNIX Environment* — W. Richard Stevens, Chapter 11 “Threads”  
+- *Programming with POSIX Threads* — David R. Butenhof  
+- *Operating Systems: Three Easy Pieces* — Chapter on “Concurrency and Threads”  
+- [The Open Group — POSIX Threads Specification](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/pthread.h.html)
+
+**Recommended**
+- [Linux manual page - pthread_create(3)](https://man7.org/linux/man-pages/man3/pthread_create.3.html)
+- [Linux manual page - pthread_join(3)](https://man7.org/linux/man-pages/man3/pthread_join.3.html)
+- [Linux manual page - pthread_exit(3)](https://man7.org/linux/man-pages/man3/pthread_exit.3.html)
+- [Linux manual page - pthread_cancel(3)](https://man7.org/linux/man-pages/man3/pthread_cancel.3.html)
+- [Linux manual page - pthread_attr_init(3)](https://man7.org/linux/man-pages/man3/pthread_attr_init.3.html)
+- [Linux manual page - pthread_attr_destroy(3)](https://man7.org/linux/man-pages/man3/pthread_attr_destroy.3.html)
+- [Multithreading in C](https://www.geeksforgeeks.org/multithreading-in-c/)
+- [Thread functions in C/C++](https://www.geeksforgeeks.org/thread-functions-in-c-c/)
+
+---
+
+## Quiz (Self-Check)
+1. What is the key difference between a process and a thread?  
+2. Which function is used to create a new thread in POSIX?  
+3. What happens if a joinable thread finishes without being joined?  
+4. What is the purpose of `pthread_detach()`?  
+5. Why do threads share the same memory space, and what are the implications of this?  
+6. What information does `pthread_self()` return?
