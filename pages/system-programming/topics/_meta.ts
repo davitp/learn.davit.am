@@ -5,4 +5,5 @@ export default {
   'basic-io': 'Basic IO',
   'advanced-io': 'Advanced IO',
   'processes': 'Processes',
+  'threads': 'Threads',
 }
