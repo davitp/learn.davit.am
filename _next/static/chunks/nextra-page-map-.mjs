@@ -463,6 +463,13 @@ export const pageMap = [{
         "sidebarTitle": "Processes"
       }
     }, {
+      name: "synchronization",
+      route: "/system-programming/topics/synchronization",
+      frontMatter: {
+        "description": "Understanding synchronization problems in concurrent programming. Introduction to race conditions, critical sections, and main synchronization primitives in POSIX systems.",
+        "sidebarTitle": "Synchronization"
+      }
+    }, {
       name: "threads",
       route: "/system-programming/topics/threads",
       frontMatter: {
