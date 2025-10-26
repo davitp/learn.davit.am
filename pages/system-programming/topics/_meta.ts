@@ -6,4 +6,5 @@ export default {
   'advanced-io': 'Advanced IO',
   'processes': 'Processes',
   'threads': 'Threads',
+  'synchronization': 'Synchronization'
 }
