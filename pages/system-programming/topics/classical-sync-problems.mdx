@@ -1,0 +1,61 @@
+---
+description: Exploration of classical synchronization problems including Producer–Consumer, Readers–Writers, Dining Philosophers, and others, applying mutexes, semaphores, and condition variables.
+---
+# Classical Synchronization Problems
+
+## Overview
+This week focuses on **applying synchronization primitives** to solve classical concurrency problems that appear in operating systems, parallel systems, and real-world software design.  
+Through hands-on examples, students will learn how mutexes, semaphores, and condition variables can coordinate multiple threads or processes to prevent race conditions and ensure correct execution order.
+
+---
+
+## Key Concepts
+
+**Purpose of Classical Problems**
+- Serve as canonical models for understanding synchronization mechanisms.
+- Help develop reasoning about shared resources, fairness, and avoidance of deadlock or starvation.
+
+#### Producer–Consumer (Bounded Buffer)
+- **Scenario:** Producers generate data and place it in a buffer; consumers remove and process it.  
+- **Challenge:** Prevent buffer overflow (too many producers) and underflow (too many consumers).  
+- **Solution:** Use semaphores or condition variables to control buffer state.  
+- Demonstrates: **resource counting**, **mutual exclusion**, **condition signaling**.
+
+#### Readers–Writers Problem
+- **Scenario:** Multiple readers can access shared data simultaneously, but writers require exclusive access.  
+- **Challenge:** Avoid conflicts between readers and writers.  
+- **Solution:** Use reader/writer counters, semaphores, or RW locks.  
+- Demonstrates: **fairness**, **reader/writer preference**, **starvation prevention**.
+
+#### Dining Philosophers Problem
+- **Scenario:** Philosophers seated around a table alternate between thinking and eating, each needing two forks.  
+- **Challenge:** Prevent deadlock (everyone waiting) and starvation (someone never eating).  
+- **Solution:** Control fork acquisition order or use semaphores for resource allocation.  
+- Demonstrates: **deadlock prevention**, **resource hierarchy**, **symmetry breaking**.
+
+#### Sleeping Barber Problem
+- **Scenario:** A barber sleeps when no customers are waiting; customers wait if the barber is busy.  
+- **Challenge:** Synchronize waiting customers and barber’s state transitions.  
+- **Solution:** Semaphores for managing waiting chairs and signaling events.  
+- Demonstrates: **event signaling**, **resource utilization**, **thread coordination**.
+
+---
+
+## References
+- *Operating Systems: Three Easy Pieces* — Chapters “Synchronization Examples” and “Semaphores”  
+- *Modern Operating Systems* — Andrew S. Tanenbaum, Chapter on “Processes and Threads”  
+- *Programming with POSIX Threads* — David R. Butenhof, examples on coordination  
+- [pthreads(7)](https://man7.org/linux/man-pages/man7/pthreads.7.html)  
+- [sem_overview(7)](https://man7.org/linux/man-pages/man7/sem_overview.7.html)  
+- [Synchronization problems overview (Wikipedia)](https://en.wikipedia.org/wiki/Readers–writers_problem)
+
+---
+
+## Quiz (Self-Check)
+1. What causes deadlock in the Dining Philosophers problem?  
+2. How can starvation occur in the Readers–Writers problem?  
+3. Which synchronization primitives can be used to solve the Producer–Consumer problem?  
+4. In the Sleeping Barber problem, what does each semaphore represent?  
+5. Why is fairness important in synchronization design?  
+6. How does symmetry breaking help in preventing deadlocks?  
+
