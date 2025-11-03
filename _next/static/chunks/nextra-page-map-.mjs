@@ -1,8 +1,4 @@
-import linux_programming_meta from "../../../pages/_linux-programming/_meta.ts";
-import linux_programming_topics_meta from "../../../pages/_linux-programming/topics/_meta.ts";
 import meta from "../../../pages/_meta.ts";
-import operating_systems_meta from "../../../pages/_operating-systems/_meta.ts";
-import operating_systems_topics_meta from "../../../pages/_operating-systems/topics/_meta.ts";
 import system_programming_meta from "../../../pages/system-programming/_meta.ts";
 import system_programming_guides_meta from "../../../pages/system-programming/guides/_meta.ts";
 import system_programming_samples_meta from "../../../pages/system-programming/samples/_meta.ts";
@@ -14,125 +10,7 @@ import system_programming_tasks_processes_meta from "../../../pages/system-progr
 import system_programming_tasks_threads_meta from "../../../pages/system-programming/tasks/threads/_meta.ts";
 import system_programming_topics_meta from "../../../pages/system-programming/topics/_meta.ts";
 export const pageMap = [{
-  name: "_linux-programming",
-  route: "/_linux-programming",
-  children: [{
-    data: linux_programming_meta
-  }, {
-    name: "index",
-    route: "/_linux-programming",
-    frontMatter: {
-      "sidebarTitle": "Index"
-    }
-  }, {
-    name: "topics",
-    route: "/_linux-programming/topics",
-    children: [{
-      data: linux_programming_topics_meta
-    }, {
-      name: "advanced-input-output",
-      route: "/_linux-programming/topics/advanced-input-output",
-      frontMatter: {
-        "description": "Exploring more advanced functionalities provided by the File Systems API for file manipulations. Understanding concepts such as file descriptor duplication and granular control over file descriptors during file operations.",
-        "sidebarTitle": "Advanced Input Output"
-      }
-    }, {
-      name: "file-systems-api",
-      route: "/_linux-programming/topics/file-systems-api",
-      frontMatter: {
-        "description": "Providing a basic understanding of file abstractions in the API. Explaining the concept of file descriptors and their role in file operations.",
-        "sidebarTitle": "File Systems API"
-      }
-    }, {
-      name: "file-systems-overview",
-      route: "/_linux-programming/topics/file-systems-overview",
-      frontMatter: {
-        "description": "Understanding the fundamental concepts of hardware and software. Exploring the main components of a computer system.",
-        "sidebarTitle": "File Systems Overview"
-      }
-    }, {
-      name: "hardware-and-software",
-      route: "/_linux-programming/topics/hardware-and-software",
-      frontMatter: {
-        "description": "Understanding the fundamental concepts of hardware and software. Exploring the main components of a computer system.",
-        "sidebarTitle": "Hardware and Software"
-      }
-    }, {
-      name: "linux-programming",
-      route: "/_linux-programming/topics/linux-programming",
-      frontMatter: {
-        "description": "Providing a concise introduction to programming in the Linux operating system. Explaining the key aspects of compiling and executing C/C++ code.",
-        "sidebarTitle": "Linux Programming"
-      }
-    }, {
-      name: "processes",
-      route: "/_linux-programming/topics/processes",
-      frontMatter: {
-        "description": "Explore the fundamentals of Unix process management. Discover key concepts such as processes, virtual memory, and creation workflows. Master command line arguments and environment variables for efficient process control. Elevate your understanding of Unix systems today.",
-        "sidebarTitle": "Processes"
-      }
-    }, {
-      name: "producer-consumer",
-      route: "/_linux-programming/topics/producer-consumer",
-      frontMatter: {
-        "description": "Understand and solve the producer-consumer problem in multi-threaded environments. Learn key concepts, solution strategies with mutexes, semaphores, and conditional variables. Practice writing and optimizing producer-consumer programs.",
-        "sidebarTitle": "Producer Consumer"
-      }
-    }, {
-      name: "synchronization",
-      route: "/_linux-programming/topics/synchronization",
-      frontMatter: {
-        "description": "Learn to tackle synchronization problems in multi-threaded environments. Understand race conditions, atomicity, and critical sections. Explore mutexes, semaphores, and spin locks. Practice solving race conditions and optimizing performance.",
-        "sidebarTitle": "Synchronization"
-      }
-    }, {
-      name: "system-calls",
-      route: "/_linux-programming/topics/system-calls",
-      frontMatter: {
-        "description": "Understanding the essential aspects of communication between hardware and software. Exploring the functionality exposed by operating systems and the role of System Calls.",
-        "sidebarTitle": "System Calls"
-      }
-    }, {
-      name: "threads",
-      route: "/_linux-programming/topics/threads",
-      frontMatter: {
-        "description": "Unlock threading's power with our guide! Learn memory layout, thread essentials, and Pthread library mastery. Practice with hands-on exercises. Start mastering parallelism and concurrency now!",
-        "sidebarTitle": "Threads"
-      }
-    }]
-  }]
-}, {
   data: meta
-}, {
-  name: "_operating-systems",
-  route: "/_operating-systems",
-  children: [{
-    data: operating_systems_meta
-  }, {
-    name: "index",
-    route: "/_operating-systems",
-    frontMatter: {
-      "sidebarTitle": "Index"
-    }
-  }, {
-    name: "topics",
-    route: "/_operating-systems/topics",
-    children: [{
-      data: operating_systems_topics_meta
-    }, {
-      name: "introduction",
-      route: "/_operating-systems/topics/introduction",
-      frontMatter: {
-        "sidebarTitle": "Introduction"
-      }
-    }]
-  }, {
-    name: "topics",
-    route: "/_operating-systems/topics",
-    frontMatter: {
-      "sidebarTitle": "Topics"
-    }
-  }]
 }, {
   name: "index",
   route: "/",
@@ -440,6 +318,13 @@ export const pageMap = [{
       frontMatter: {
         "description": "Introduction to system calls, kernel-user interaction, error handling, and file I/O via file descriptors in Linux.",
         "sidebarTitle": "Basic Io"
+      }
+    }, {
+      name: "classical-sync-problems",
+      route: "/system-programming/topics/classical-sync-problems",
+      frontMatter: {
+        "description": "Exploration of classical synchronization problems including Producer–Consumer, Readers–Writers, Dining Philosophers, and others, applying mutexes, semaphores, and condition variables.",
+        "sidebarTitle": "Classical Sync Problems"
       }
     }, {
       name: "compilation",
