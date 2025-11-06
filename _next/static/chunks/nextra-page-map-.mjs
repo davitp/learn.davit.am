@@ -82,6 +82,12 @@ export const pageMap = [{
         "sidebarTitle": "Detect Holes"
       }
     }, {
+      name: "dining-philosophers",
+      route: "/system-programming/samples/dining-philosophers",
+      frontMatter: {
+        "sidebarTitle": "Dining Philosophers"
+      }
+    }, {
       name: "make-hole",
       route: "/system-programming/samples/make-hole",
       frontMatter: {
