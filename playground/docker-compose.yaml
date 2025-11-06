@@ -1,0 +1,8 @@
+services:
+
+  ubuntu-tty:
+    image: ubuntu-tty
+    build: ./ubuntu-tty
+    container_name: ubuntu-tty
+    volumes:
+      - ./:/home/user/playground
