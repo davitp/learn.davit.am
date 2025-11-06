@@ -7,5 +7,6 @@ export default {
   'make-hole': 'Creating holes',
   'detect-holes': 'Detect holes',
   'create-process': 'Create a process',
-  'create-thread': 'Create a thread'
+  'create-thread': 'Create a thread',
+  'dining-philosophers': 'Dining philosophers'
 }

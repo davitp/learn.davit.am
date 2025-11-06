@@ -1,0 +1,301 @@
+# Dining philosophers
+
+The sample demonstrates how a simple implementation of dining philosophers problem's solution using semaphore.
+
+## Naive implementation ❌
+The following code is a simple implementation for the problem that solves race condition, however, introduces the **deadlock**.
+
+```c
+#include <iostream>
+#include <pthread.h>
+#include <string.h>
+#include <semaphore.h>
+#include <cstdlib> 
+#include <cerrno>
+#include <unistd.h>
+
+// declare 5 philosophers by default
+const int DEFAULT_N_PHILOSOPHERS = 5;
+
+/**
+ * A structure to define philosopher's context
+ */
+struct philosopher_context_t
+{
+    // the index of current philosopher
+    int index;
+
+    // the number of philosophers
+    int count;
+
+    // semaphores to synchronize access to forks
+    sem_t* forks;
+};
+
+
+// the philosophers function implementation
+void* philosopher(void* arg){
+
+    // get the context from argument
+    philosopher_context_t* ctx = (philosopher_context_t*) arg;
+
+    // infinitely doing the same thing
+    while(true){
+
+        // start thinking
+        printf("P%d is thinking...\n", ctx->index);
+
+        // pick left and then right fork
+        int first = ctx->index;
+        int second = (ctx->index + 1) % ctx->count;
+
+        // wait for the left fork
+        sem_wait(&ctx->forks[first]);
+        sem_wait(&ctx->forks[second]);
+
+        // start eating
+        printf("P%d is eating...\n", ctx->index);
+        
+        // put down the forks
+        sem_post(&ctx->forks[first]);
+        sem_post(&ctx->forks[second]);
+    }
+
+    return NULL;
+}
+
+int main(int argc, char** argv){
+
+    // the number of philosophers
+    int count = DEFAULT_N_PHILOSOPHERS;
+
+    // if argument is given
+    if(argc > 1){
+        // use argument as a number of philosophers
+        count = std::atoi(argv[1]);
+    }
+
+    // create sempahores for forks
+    sem_t* forks = new sem_t[count];
+
+    // initialize semaphores
+    for(int i = 0; i < count; ++i){
+        
+        // initialize semaphors to 1 (fork is available)
+        int result = sem_init(&forks[i], 0, 1);
+
+        // error while initializing
+        if(result < 0){
+            std::cerr << strerror(errno) << std::endl;
+            exit(errno);
+        }
+    }
+
+    // create context objects for philosophers
+    philosopher_context_t* contexts = new philosopher_context_t[count];
+    
+    // create threads
+    pthread_t* threads = new pthread_t[count];
+
+    // initialize threads
+    for(int i = 0; i < count; ++i){
+
+        contexts[i].index = i; 
+        contexts[i].count = count;
+        contexts[i].forks = forks;
+
+        // create a new thread for philosopher
+        int threadCreated = pthread_create(&threads[i], NULL, philosopher, (void*) &contexts[i]);
+
+        // could not create a thread
+        if(threadCreated != 0){
+            std::cerr << strerror(threadCreated) << std::endl;
+            exit(threadCreated);
+        }
+    }
+
+    // join threads
+    for(int i = 0; i < count; ++i){
+        int joined = pthread_join(threads[i], NULL);
+    }
+
+    // delete threads
+    delete [] threads;
+
+    // delete contexts
+    delete [] contexts;
+
+    // destroy semaphores
+    for(int i = 0; i < count; ++i){
+        sem_destroy(&forks[i]);
+    }
+
+    // delete seamphores
+    delete [] forks;
+
+    return 0;
+}
+```
+
+The problem is following: whenever philosopher tries to pick up forks, they try picking up the **left** fork and then the **right** fork. 
+If, two all the philosophers will simultaneously pick up the **left** fork, they will succeed, however, no philosopher will be able to pick up the right fork, and hence, no one will eat and put down the left fork.
+
+This will lead to circular infinite waiting - **a deadlock**.
+
+To break the circular dependency, one of the practices is **odd/even strategy** - philosophers with **even** index pick up **left fork first**, while odd-indexed philosophers pick up the **right fork first**. 
+This way, the circular waiting will be impossible.
+
+## Implementation (odd/even picking strategy) ✅ 
+
+This is the part of the code that needs to be added/modified:
+
+```c
+// for even indexes pick up left and then right
+int first = ctx->index;
+int second = (ctx->index + 1) % ctx->count;
+
+// for odd indexes pick right and then left
+if(ctx->index % 2 != 0){
+std::swap(first, second);
+}
+
+```
+
+The full implementation looks like this:
+
+```c
+#include <iostream>
+#include <pthread.h>
+#include <string.h>
+#include <semaphore.h>
+#include <cstdlib> 
+#include <cerrno>
+#include <unistd.h>
+
+// declare 5 philosophers by default
+const int DEFAULT_N_PHILOSOPHERS = 5;
+
+/**
+ * A structure to define philosopher's context
+ */
+struct philosopher_context_t
+{
+    // the index of current philosopher
+    int index;
+
+    // the number of philosophers
+    int count;
+
+    // semaphores to synchronize access to forks
+    sem_t* forks;
+};
+
+
+// the philosophers function implementation
+void* philosopher(void* arg){
+
+    // get the context from argument
+    philosopher_context_t* ctx = (philosopher_context_t*) arg;
+
+    // infinitely doing the same thing
+    while(true){
+
+        // start thinking
+        printf("P%d is thinking...\n", ctx->index);
+
+        // for even indexes pick up left and then right
+        int first = ctx->index;
+        int second = (ctx->index + 1) % ctx->count;
+
+        // for odd indexes pick right and then left
+        if(ctx->index % 2 != 0){
+            std::swap(first, second);
+        }
+
+        // pick up the first and then second fork
+        sem_wait(&ctx->forks[first]);
+        sem_wait(&ctx->forks[second]);
+
+        // start eating
+        printf("P%d is eating...\n", ctx->index);
+        
+        // put down the forks
+        sem_post(&ctx->forks[first]);
+        sem_post(&ctx->forks[second]);
+    }
+
+    return NULL;
+}
+
+int main(int argc, char** argv){
+
+    // the number of philosophers
+    int count = DEFAULT_N_PHILOSOPHERS;
+
+    // if argument is given
+    if(argc > 1){
+        // use argument as a number of philosophers
+        count = std::atoi(argv[1]);
+    }
+
+    // create sempahores for forks
+    sem_t* forks = new sem_t[count];
+
+    // initialize semaphores
+    for(int i = 0; i < count; ++i){
+        
+        // initialize semaphors to 1 (fork is available)
+        int result = sem_init(&forks[i], 0, 1);
+
+        // error while initializing
+        if(result < 0){
+            std::cerr << strerror(errno) << std::endl;
+            exit(errno);
+        }
+    }
+
+    // create context objects for philosophers
+    philosopher_context_t* contexts = new philosopher_context_t[count];
+    
+    // create threads
+    pthread_t* threads = new pthread_t[count];
+
+    // initialize threads
+    for(int i = 0; i < count; ++i){
+
+        contexts[i].index = i; 
+        contexts[i].count = count;
+        contexts[i].forks = forks;
+
+        // create a new thread for philosopher
+        int threadCreated = pthread_create(&threads[i], NULL, philosopher, (void*) &contexts[i]);
+
+        // could not create a thread
+        if(threadCreated != 0){
+            std::cerr << strerror(threadCreated) << std::endl;
+            exit(threadCreated);
+        }
+    }
+
+    // join threads
+    for(int i = 0; i < count; ++i){
+        int joined = pthread_join(threads[i], NULL);
+    }
+
+    // delete threads
+    delete [] threads;
+
+    // delete contexts
+    delete [] contexts;
+
+    // destroy semaphores
+    for(int i = 0; i < count; ++i){
+        sem_destroy(&forks[i]);
+    }
+
+    // delete seamphores
+    delete [] forks;
+
+    return 0;
+}
+```
