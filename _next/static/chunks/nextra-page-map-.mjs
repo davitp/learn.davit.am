@@ -54,6 +54,12 @@ export const pageMap = [{
     children: [{
       data: system_programming_samples_meta
     }, {
+      name: "bounded-buffer",
+      route: "/system-programming/samples/bounded-buffer",
+      frontMatter: {
+        "sidebarTitle": "Bounded Buffer"
+      }
+    }, {
       name: "copy-file",
       route: "/system-programming/samples/copy-file",
       frontMatter: {
