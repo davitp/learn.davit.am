@@ -8,5 +8,6 @@ export default {
   'detect-holes': 'Detect holes',
   'create-process': 'Create a process',
   'create-thread': 'Create a thread',
+  'bounded-buffer': 'Bounded buffer',
   'dining-philosophers': 'Dining philosophers'
 }
