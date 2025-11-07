@@ -1,6 +1,6 @@
 # Dining philosophers
 
-The sample demonstrates how a simple implementation of dining philosophers problem's solution using semaphore.
+The sample demonstrates a simple implementation of dining philosophers problem's solution using semaphore.
 
 ## Naive implementation ❌
 The following code is a simple implementation for the problem that solves race condition, however, introduces the **deadlock**.
@@ -156,7 +156,7 @@ int second = (ctx->index + 1) % ctx->count;
 
 // for odd indexes pick right and then left
 if(ctx->index % 2 != 0){
-std::swap(first, second);
+    std::swap(first, second);
 }
 
 ```
