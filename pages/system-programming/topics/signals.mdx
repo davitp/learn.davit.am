@@ -1,0 +1,128 @@
+---
+description: Introduction to signals in Unix/Linux — understanding asynchronous event notification, signal handling, and sending signals for inter-process communication.
+---
+
+# IPC: Signals
+
+## Overview
+This week introduces **signals** as a fundamental mechanism for asynchronous inter-process communication in Unix/Linux systems.  
+Students will learn how signals are generated, how processes can handle them, and how to send signals between processes. We will explore the standard signal API and signal handling mechanisms.
+
+By the end of this week, students will understand how processes communicate through signals, how to handle exceptional events, and how to register custom signal handlers.
+
+---
+
+## Key Concepts
+
+#### What are Signals?
+- Signals as **software interrupts** for asynchronous event notification  
+- Uses of signals: termination, suspension, error notification, timer events, user-defined IPC  
+- Signal lifecycle: generation → delivery → handling  
+- Synchronous vs. asynchronous signals  
+- Signals as a form of lightweight IPC between processes
+
+#### Standard Signals
+- **Process control signals:**  
+  - `SIGTERM` — polite termination request  
+  - `SIGKILL` — forced termination (uncatchable)  
+  - `SIGSTOP` / `SIGCONT` — suspend and resume execution  
+- **Error and fault signals:**  
+  - `SIGSEGV` — segmentation fault  
+  - `SIGFPE` — floating-point exception  
+  - `SIGILL` — illegal instruction  
+  - `SIGBUS` — bus error  
+- **User and timer signals:**  
+  - `SIGUSR1` / `SIGUSR2` — user-defined signals  
+  - `SIGALRM` — timer expiration (from `alarm()`)  
+- **Job control signals:**  
+  - `SIGINT` — interrupt from keyboard (Ctrl+C)  
+  - `SIGQUIT` — quit from keyboard (Ctrl+\\)  
+  - `SIGTSTP` — terminal stop (Ctrl+Z)  
+- **I/O and pipe signals:**  
+  - `SIGPIPE` — write to a pipe with no reader  
+  - `SIGIO` — asynchronous I/O event  
+- **Child process signals:**  
+  - `SIGCHLD` — child process terminated or stopped
+
+#### Signal Handling
+- **Default actions:** terminate, ignore, stop, continue, core dump  
+- **Custom signal handlers:**  
+  - `sigaction()` — modern, reliable signal handling API  
+  - `signal()` — traditional (unreliable) signal handler registration [do not use]
+- **Handler function signature:** `void handler(int signum)`  
+- **Persistent vs. one-shot handlers**  
+- **Signal disposition:** default, ignore (`SIG_IGN`), custom handler (`SIG_DFL`)
+
+#### Sending and Raising Signals
+- `kill()` — send a signal to a process or process group  
+- `raise()` — send a signal to the calling process  
+- `killpg()` — send a signal to a process group  
+- `pthread_kill()` — send a signal to a specific thread  
+- Command-line tools: `kill`, `killall`, `pkill`
+
+---
+
+## Practice / Lab
+
+### Signal Handling
+- Write a program that handles `SIGINT` (Ctrl+C) and prints a message instead of terminating.  
+- Register a handler using `sigaction()` and observe the behavior.  
+- Use the `kill` command from the shell to send signals to your running program.
+
+### Inter-Process Signaling
+- Write a parent process that forks a child and sends `SIGUSR1` using `kill()`.  
+- Have the child process handle `SIGUSR1` and respond with `SIGUSR2` to the parent.
+
+### Timers
+- Use `alarm()` to schedule `SIGALRM` and implement a timeout mechanism.
+
+---
+
+## Homework
+- [IPC-1: Signal Echo](/system-programming/tasks/ipc/signal-echo/)
+
+---
+
+## References & Resources
+
+**Required**
+- [Signals in C programming](https://www.youtube.com/watch?v=5We_HtLlAbs)
+- [Signal Handling in Linux](https://www.youtube.com/watch?v=jF-1eFhyz1U) 
+- [Signals in C Language](https://www.geeksforgeeks.org/signals-c-language/)
+- [Signal handling — sigaction](https://www.youtube.com/watch?v=83M5-NPDeWs)
+- Kerrisk, *The Linux Programming Interface*  
+  - Chapter 20: Signals — Fundamental Concepts  
+  - Chapter 21: Signals — Signal Handlers  
+- *Advanced Programming in the UNIX Environment* — W. Richard Stevens, Chapter 10 "Signals"
+
+**Recommended**
+- [Linux manual page - signal(7)](https://man7.org/linux/man-pages/man7/signal.7.html)
+- [Linux manual page - sigaction(2)](https://man7.org/linux/man-pages/man2/sigaction.2.html)
+- [Linux manual page - kill(2)](https://man7.org/linux/man-pages/man2/kill.2.html)
+- [Linux manual page - raise(3)](https://man7.org/linux/man-pages/man3/raise.3.html)
+- [Linux manual page - alarm(2)](https://man7.org/linux/man-pages/man2/alarm.2.html)
+- [POSIX Signals (Wikipedia)](https://en.wikipedia.org/wiki/Signal_(IPC))
+- [Understanding sigaction](https://www.baeldung.com/linux/sigaction-function)
+
+---
+
+## Quiz (Self-check)
+
+1. What is the difference between `SIGTERM` and `SIGKILL`?  
+2. Why is `sigaction()` preferred over `signal()` for signal handling?  
+3. What are the default actions a process can take when receiving a signal?  
+4. How do you send a signal from one process to another?  
+5. What is the purpose of `SIGUSR1` and `SIGUSR2`?  
+6. What happens when you press Ctrl+C in a terminal running a program?  
+7. How does the `alarm()` function use signals?
+
+---
+
+## Suggested Tools
+- `kill` — send signals to processes by PID  
+- `killall` — send signals to processes by name  
+- `pkill` — send signals based on pattern matching  
+- `trap` — shell built-in for handling signals in scripts  
+- `strace` — trace signal delivery and system calls  
+- `gdb` — debug signal handling behavior
+
