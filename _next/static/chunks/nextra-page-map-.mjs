@@ -360,6 +360,13 @@ export const pageMap = [{
         "sidebarTitle": "Processes"
       }
     }, {
+      name: "signals",
+      route: "/system-programming/topics/signals",
+      frontMatter: {
+        "description": "Introduction to signals in Unix/Linux — understanding asynchronous event notification, signal handling, and sending signals for inter-process communication.",
+        "sidebarTitle": "Signals"
+      }
+    }, {
       name: "synchronization",
       route: "/system-programming/topics/synchronization",
       frontMatter: {
