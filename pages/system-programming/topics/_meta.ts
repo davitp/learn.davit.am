@@ -7,5 +7,6 @@ export default {
   'processes': 'Processes',
   'threads': 'Threads',
   'synchronization': 'Synchronization',
-  'classical-sync-problems': "Classical Sync Problems"
+  'classical-sync-problems': "Classical Sync Problems",
+  'signals': "IPC: Signals",
 }
