@@ -1,0 +1,152 @@
+---
+description: Introduction to pipes and FIFOs in Unix/Linux — understanding anonymous pipes for parent-child communication and named pipes (FIFOs) for unrelated process IPC.
+---
+
+# Pipes and FIFOs
+
+## Overview
+This week introduces **pipes** as a fundamental mechanism for inter-process communication in Unix/Linux systems.  
+Students will learn about **anonymous pipes** (unnamed pipes) for communication between related processes, and **named pipes** (FIFOs) for communication between unrelated processes. We will explore how data flows through pipes, their characteristics, and the system calls used to create and manage them.
+
+By the end of this week, students will understand how to use pipes for process communication, the differences between anonymous and named pipes, and when to use each type.
+
+---
+
+## Key Concepts
+
+### What are Pipes?
+- Pipes as **unidirectional byte streams** for IPC  
+- Producer-consumer model: one process writes, another reads  
+- Pipes as the foundation of Unix philosophy ("do one thing well")  
+- Shell pipes (`|`) connecting command outputs to inputs  
+
+### Pipe Characteristics
+- **Unidirectional data flow:** one-way communication channel  
+- **Byte stream:** no message boundaries, continuous stream of bytes  
+- **Buffered I/O:** kernel maintains a buffer (typically 64KB on Linux)  
+- **Blocking behavior:**  
+  - `read()` blocks if pipe is empty  
+  - `write()` blocks if pipe buffer is full  
+- **Automatic synchronization:** kernel handles coordination between reader and writer  
+- **EOF condition:** `read()` returns 0 when all write ends are closed
+
+### Anonymous Pipes (Unnamed Pipes)
+- Created with `pipe()` system call  
+- Returns two file descriptors: `fd[0]` for reading, `fd[1]` for writing  
+- Communication between **related processes** (parent-child via `fork()`)  
+- File descriptors inherited by child processes  
+- Typical workflow:  
+  1. Parent creates pipe with `pipe()`  
+  2. Parent forks child process  
+  3. Both close unused ends (parent closes read end if writing, etc.)  
+  4. Processes communicate via `read()` and `write()`  
+  5. Close all pipe ends when done
+
+### Named Pipes (FIFOs)
+- Created with `mkfifo()` system call or `mkfifo` command  
+- Exist as **special files** in the filesystem (`ls -l` shows `p` type)  
+- Enable communication between **unrelated processes**  
+- Persist in the filesystem until explicitly removed  
+- Opened with standard `open()` call  
+- Multiple readers and writers possible (but data interleaving may occur)  
+- Opening behavior:  
+  - `open()` for reading blocks until a writer opens the FIFO  
+  - `open()` for writing blocks until a reader opens the FIFO  
+  - Use `O_NONBLOCK` flag to prevent blocking on open
+
+### Bidirectional Communication
+- Single pipe provides one-way communication  
+- For bidirectional communication: create **two pipes**  
+- Pipe 1: parent → child  
+- Pipe 2: child → parent  
+- Each process closes the ends it doesn't use
+
+### Common Patterns and Best Practices
+- **Always close unused pipe ends** to avoid deadlocks and resource leaks  
+- Check return values of `pipe()`, `read()`, `write()`, and `close()`  
+- Handle `SIGPIPE` signal (sent when writing to a pipe with no readers)  
+- Use `select()`, `poll()`, or `epoll()` for non-blocking I/O on multiple pipes  
+- Be aware of pipe buffer size limits (use `fcntl()` with `F_GETPIPE_SZ`)
+
+---
+
+## Practice / Lab
+
+### Anonymous Pipes: Parent-Child Communication
+- Write a program where a parent creates a pipe, forks a child, and sends a message to the child.  
+- Have the child read from the pipe and print the message.  
+- Ensure both processes close unused pipe ends.
+
+### Bidirectional Communication
+- Create two pipes for bidirectional communication between parent and child.  
+- Parent sends a number to child; child squares it and sends back the result.
+
+### Command Pipeline Implementation
+- Implement a simplified version of shell piping: `command1 | command2`  
+- Use `pipe()`, `fork()`, `dup2()`, and `exec()` to redirect output/input.
+
+### Named Pipes (FIFOs)
+- Create a FIFO using `mkfifo()` in one program.  
+- Write a sender program that opens the FIFO and writes messages.  
+- Write a receiver program that opens the FIFO and reads messages.  
+- Run sender and receiver as separate processes and observe communication.
+
+### Exploring Pipe Limits
+- Write to a pipe without reading to observe blocking behavior when buffer fills.  
+- Use `ulimit -p` or `/proc/sys/fs/pipe-max-size` to inspect pipe buffer sizes.
+
+---
+
+## Homework
+- [IPC-2: Prime Calculator](/system-programming/tasks/ipc/prime-calculator/)
+
+---
+
+## References & Resources
+
+**Required**
+- [Pipes in C programming](https://www.youtube.com/watch?v=Mqb2dVRe0uo)  
+- [Unix Pipes Explained](https://www.youtube.com/watch?v=6xbLgZpOBi8)  
+- [Named Pipes (FIFOs) in Linux](https://www.youtube.com/watch?v=2hba3etpoJg)  
+- [Pipe, Fork and Exec](https://www.youtube.com/watch?v=NkfIUo_Qq4c)  
+- [Pipes in Linux (GeeksforGeeks)](https://www.geeksforgeeks.org/pipe-system-call/)  
+- Kerrisk, *The Linux Programming Interface*  
+  - Chapter 44: Pipes and FIFOs  
+- *Advanced Programming in the UNIX Environment* — W. Richard Stevens, Chapter 15 "Interprocess Communication"
+
+**Recommended**
+- [Linux manual page - pipe(2)](https://man7.org/linux/man-pages/man2/pipe.2.html)  
+- [Linux manual page - mkfifo(3)](https://man7.org/linux/man-pages/man3/mkfifo.3.html)  
+- [Linux manual page - fifo(7)](https://man7.org/linux/man-pages/man7/fifo.7.html)  
+- [Linux manual page - dup2(2)](https://man7.org/linux/man-pages/man2/dup2.2.html)  
+- [Understanding Pipes in Unix](https://www.baeldung.com/linux/pipes)  
+- [Named Pipes (IBM Developer)](https://developer.ibm.com/articles/l-lpic1-103-4/)  
+- [Pipe Implementation in Linux Kernel](https://www.kernel.org/doc/html/latest/filesystems/pipes.html)  
+- [How Unix Pipes Are Implemented (LWN.net)](https://lwn.net/Articles/118750/)
+
+---
+
+## Quiz (Self-check)
+
+1. What is the difference between anonymous pipes and named pipes (FIFOs)?  
+2. Why must unused pipe ends be closed in both parent and child processes?  
+3. What happens when you try to write to a pipe that has no readers?  
+4. How does `pipe()` communicate the file descriptors to the caller?  
+5. What is the typical size of a pipe buffer in Linux?  
+6. How can you implement bidirectional communication using pipes?  
+7. When would you use a FIFO instead of an anonymous pipe?  
+8. What does `read()` return when all write ends of a pipe are closed?  
+9. What flag can you use to prevent `open()` from blocking when opening a FIFO?  
+10. How do shell pipelines like `ls | grep txt | wc -l` work internally?
+
+---
+
+## Suggested Tools
+- `mkfifo` — create named pipes from the command line  
+- `ls -l` — identify FIFOs (shown as type `p`)  
+- `cat` — read from or write to FIFOs for testing  
+- `strace` — trace `pipe()`, `read()`, `write()` system calls  
+- `lsof` — list open file descriptors including pipes  
+- `pv` — pipe viewer for monitoring data flow through pipes  
+- `tee` — read from stdin and write to both stdout and files  
+

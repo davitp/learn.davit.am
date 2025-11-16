@@ -9,4 +9,5 @@ export default {
   'synchronization': 'Synchronization',
   'classical-sync-problems': "Classical Sync Problems",
   'signals': "IPC: Signals",
+  'pipes': "Pipes and FIFOs"
 }
