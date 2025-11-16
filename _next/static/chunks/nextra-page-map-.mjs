@@ -353,6 +353,13 @@ export const pageMap = [{
         "sidebarTitle": "Intro"
       }
     }, {
+      name: "pipes",
+      route: "/system-programming/topics/pipes",
+      frontMatter: {
+        "description": "Introduction to pipes and FIFOs in Unix/Linux — understanding anonymous pipes for parent-child communication and named pipes (FIFOs) for unrelated process IPC.",
+        "sidebarTitle": "Pipes"
+      }
+    }, {
       name: "processes",
       route: "/system-programming/topics/processes",
       frontMatter: {
