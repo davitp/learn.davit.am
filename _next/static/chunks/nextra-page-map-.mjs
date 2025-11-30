@@ -367,6 +367,13 @@ export const pageMap = [{
         "sidebarTitle": "Processes"
       }
     }, {
+      name: "shared-memory",
+      route: "/system-programming/topics/shared-memory",
+      frontMatter: {
+        "description": "Introduction to shared memory in Unix/Linux — understanding memory-mapped I/O, POSIX shared memory, and System V shared memory for efficient inter-process communication.",
+        "sidebarTitle": "Shared Memory"
+      }
+    }, {
       name: "signals",
       route: "/system-programming/topics/signals",
       frontMatter: {
