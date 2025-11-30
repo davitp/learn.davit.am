@@ -1,0 +1,186 @@
+---
+description: Introduction to shared memory in Unix/Linux — understanding memory-mapped I/O, POSIX shared memory, and System V shared memory for efficient inter-process communication.
+---
+
+# Shared Memory
+
+## Overview
+This week introduces **shared memory** as a high-performance mechanism for inter-process communication in Unix/Linux systems.  
+Students will learn about **memory-mapped I/O** (`mmap`), **POSIX shared memory** (`shm_open`, `shm_unlink`), and **System V shared memory** (`shmget`, `shmat`, `shmdt`) as different approaches to sharing memory regions between processes. We will explore the advantages, use cases, and synchronization requirements for shared memory.
+
+By the end of this week, students will understand how to create and manage shared memory segments, the differences between POSIX and System V approaches, and how to synchronize access to shared data.
+
+---
+
+## Key Concepts
+
+### What is Shared Memory?
+- Shared memory as **the fastest IPC mechanism** (no data copying between processes)  
+- Direct memory access without kernel intervention after setup  
+- Multiple processes mapping the same physical memory region into their address spaces  
+- Requires explicit **synchronization** (semaphores, mutexes, etc.) to avoid race conditions  
+- Use cases: high-performance computing, database systems, multimedia applications
+
+### Memory-Mapped I/O (`mmap`)
+- `mmap()` — map files or devices into memory  
+- Virtual memory technique: file contents accessible via pointer operations  
+- Changes to mapped region automatically reflected in the file (for file-backed mappings)  
+- **Anonymous mappings** (`MAP_ANONYMOUS`): not backed by any file, used for shared memory  
+- **Shared vs. Private mappings:**  
+  - `MAP_SHARED` — changes visible to other processes  
+  - `MAP_PRIVATE` — copy-on-write, changes private to the process  
+- Memory protection flags: `PROT_READ`, `PROT_WRITE`, `PROT_EXEC`, `PROT_NONE`  
+- `munmap()` — unmap memory region  
+- `msync()` — synchronize mapped region with underlying file
+
+### POSIX Shared Memory (Recommended Modern Approach)
+- **Creating shared memory objects:**  
+  - `shm_open()` — create/open a shared memory object (lives in `/dev/shm/`)  
+  - Returns a file descriptor (POSIX compliant)  
+  - `ftruncate()` — set the size of the shared memory object  
+  - `mmap()` — map the object into process address space  
+- **Removing shared memory:**  
+  - `shm_unlink()` — remove shared memory object (similar to `unlink()` for files)  
+- **Advantages:**  
+  - Simpler API using file descriptors  
+  - Integrates well with POSIX standards  
+  - Can use with `select()`, `poll()`, `epoll()`  
+  - Automatic cleanup when all references are closed (if unlinked)
+
+### System V Shared Memory (Legacy but Still Widely Used)
+- **Creating and accessing:**  
+  - `shmget()` — create or get a shared memory segment using a key  
+  - Keys generated with `ftok()` or using `IPC_PRIVATE`  
+  - `shmat()` — attach shared memory segment to process address space  
+  - `shmdt()` — detach shared memory segment  
+- **Managing and removing:**  
+  - `shmctl()` — control operations (get info, set permissions, remove)  
+  - `IPC_RMID` flag to mark segment for removal  
+  - Segments persist until explicitly removed or system reboot  
+- **Tools for inspection:**  
+  - `ipcs` — display information about IPC facilities  
+  - `ipcrm` — remove IPC resources  
+- **Limitations:**  
+  - More complex API with keys and IDs  
+  - No automatic cleanup (segments persist)  
+  - Not file descriptor based
+
+### Synchronization Requirements
+- **Race conditions:** multiple processes accessing shared memory simultaneously  
+- **Critical sections:** code that accesses shared data must be protected  
+- **Synchronization primitives required:**  
+  - POSIX semaphores (`sem_open()`, `sem_wait()`, `sem_post()`)  
+  - System V semaphores (`semget()`, `semop()`, `semctl()`)  
+  - Process-shared mutexes (with `PTHREAD_PROCESS_SHARED` attribute)  
+  - File locking (`fcntl()`, `flock()`)  
+- Shared memory itself provides **no synchronization** — must be explicitly managed
+
+### POSIX vs System V Comparison
+
+| Feature | POSIX Shared Memory | System V Shared Memory |
+|---------|---------------------|------------------------|
+| API Style | File descriptor based | Key and ID based |
+| Creation | `shm_open()` + `mmap()` | `shmget()` + `shmat()` |
+| Removal | `shm_unlink()` | `shmctl(IPC_RMID)` |
+| Persistence | Removed when unlinked | Persists until removed |
+| Integration | Works with `poll()`, etc. | Separate API |
+| Portability | Modern POSIX systems | Widely available (legacy) |
+| Recommended | ✅ Yes (modern approach) | ⚠️ Legacy (but still used) |
+
+---
+
+## Practice / Lab
+
+### Memory-Mapped File I/O
+- Create a file and use `mmap()` to map it into memory.  
+- Modify the file contents by writing to the mapped memory region.  
+- Verify changes persist after `munmap()` and program termination.
+
+### POSIX Shared Memory
+- Write two programs: a writer and a reader.  
+- Writer creates shared memory with `shm_open()`, sizes it with `ftruncate()`, maps it with `mmap()`, and writes data.  
+- Reader opens the same shared memory object, maps it, and reads the data.  
+- Use `shm_unlink()` to clean up.
+
+### System V Shared Memory
+- Implement the same writer/reader pattern using `shmget()` and `shmat()`.  
+- Use `ftok()` to generate a key from a file path.  
+- Inspect shared memory segments with `ipcs -m`.  
+- Clean up with `shmctl()` or `ipcrm`.
+
+### Synchronized Shared Memory Access
+- Create a shared counter in shared memory.  
+- Launch multiple processes that increment the counter.  
+- First, observe race conditions without synchronization.  
+- Then, add POSIX semaphores (`sem_open()`) to protect the critical section.
+
+### Performance Comparison
+- Compare data transfer rates between:  
+  - Shared memory (direct access)  
+  - Pipes (kernel-mediated)  
+  - Files (disk I/O)  
+- Measure and observe the performance differences.
+
+---
+
+## Homework
+- [IPC-3: Shared Array](/system-programming/tasks/ipc/shared-array/)
+
+---
+
+## References & Resources
+
+**Required**
+- [Memory-mapped Files in Linux](https://www.youtube.com/watch?v=m7E9piHcfr4)  
+- [Shared Memory in Linux](https://www.youtube.com/watch?v=WgVSq-sgHOI)  
+- [POSIX Shared Memory (shm_open)](https://www.youtube.com/watch?v=ukM_zzrIeXs)  
+- [System V Shared Memory Tutorial](https://www.youtube.com/watch?v=hlVl7J-6Rqc)  
+- [Understanding mmap](https://www.baeldung.com/linux/mmap-system-call)  
+- Kerrisk, *The Linux Programming Interface*  
+  - Chapter 49: Memory Mappings  
+  - Chapter 48: System V Shared Memory  
+  - Chapter 54: POSIX Shared Memory  
+- *Advanced Programming in the UNIX Environment* — W. Richard Stevens, Chapter 15.9 "Shared Memory"
+
+**Recommended**
+- [Linux manual page - mmap(2)](https://man7.org/linux/man-pages/man2/mmap.2.html)  
+- [Linux manual page - munmap(2)](https://man7.org/linux/man-pages/man2/munmap.2.html)  
+- [Linux manual page - shm_open(3)](https://man7.org/linux/man-pages/man3/shm_open.3.html)  
+- [Linux manual page - shm_overview(7)](https://man7.org/linux/man-pages/man7/shm_overview.7.html)  
+- [Linux manual page - shmget(2)](https://man7.org/linux/man-pages/man2/shmget.2.html)  
+- [Linux manual page - shmat(2)](https://man7.org/linux/man-pages/man2/shmat.2.html)  
+- [Linux manual page - shmctl(2)](https://man7.org/linux/man-pages/man2/shmctl.2.html)  
+- [Shared Memory Programming (IBM Developer)](https://developer.ibm.com/articles/au-spunix_sharedmemory/)  
+- [Understanding Shared Memory (GeeksforGeeks)](https://www.geeksforgeeks.org/ipc-shared-memory/)  
+- [Memory Mapped Files Explained](https://www.baeldung.com/linux/memory-mapped-files)  
+- [Difference between System V and POSIX IPC](https://stackoverflow.com/questions/4582968/system-v-ipc-vs-posix-ipc)
+
+---
+
+## Quiz (Self-check)
+
+1. Why is shared memory considered the fastest IPC mechanism?  
+2. What is the difference between `MAP_SHARED` and `MAP_PRIVATE` in `mmap()`?  
+3. What system call is used to set the size of a POSIX shared memory object?  
+4. How do you create a POSIX shared memory object, and where does it appear in the filesystem?  
+5. What is the purpose of `shm_unlink()`?  
+6. How does System V shared memory differ from POSIX shared memory?  
+7. What command-line tools can you use to inspect System V shared memory segments?  
+8. Why does shared memory require explicit synchronization?  
+9. What happens if you don't call `shmctl(IPC_RMID)` to remove a System V shared memory segment?  
+10. What are the advantages of using `mmap()` for file I/O?  
+11. How can you protect a critical section when multiple processes access shared memory?  
+12. What is the role of `ftok()` in System V IPC?
+
+---
+
+## Suggested Tools
+- `ipcs` — display information about System V IPC facilities (shared memory, semaphores, message queues)  
+- `ipcrm` — remove System V IPC resources  
+- `ls /dev/shm/` — list POSIX shared memory objects  
+- `pmap` — display memory map of a process  
+- `vmstat` — report virtual memory statistics  
+- `strace` — trace `mmap()`, `shm_open()`, `shmget()` system calls  
+- `valgrind` — detect memory access errors in shared memory programs  
+- `gdb` — debug shared memory applications  
+
