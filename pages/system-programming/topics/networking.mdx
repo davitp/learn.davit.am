@@ -1,0 +1,432 @@
+---
+description: Introduction to computer networking — understanding network topologies, the OSI model, IP addressing, routing, transport protocols (TCP/UDP), and application layer protocols to prepare for socket programming.
+---
+
+# Networking
+
+## Overview
+This week introduces **computer networking fundamentals** — the essential concepts required to understand how data is transmitted across networks. Before diving into socket programming and network-based IPC, students must understand how networks are structured, how devices are identified, and how data travels from one machine to another.
+
+We will explore network topologies, the **OSI reference model**, and walk through each layer from the physical hardware up to application protocols. By the end of this week, students will understand IP addressing, routing, DNS, and the difference between TCP and UDP — laying the groundwork for implementing network communication in system programs.
+
+---
+
+## Key Concepts
+
+### What is a Computer Network?
+- A **network** is a collection of interconnected devices that can exchange data  
+- Networks enable resource sharing, communication, and distributed computing  
+- **Network nodes:** computers, servers, routers, switches, printers, IoT devices  
+- **Network media:** cables (copper, fiber), wireless (Wi-Fi, Bluetooth)  
+- The **Internet** is a global network of networks
+
+### Network Topologies
+- **Bus topology:** all devices share a single communication line  
+- **Star topology:** all devices connect to a central hub/switch  
+- **Ring topology:** devices form a circular chain (data travels in one direction)  
+- **Mesh topology:** devices interconnected (full or partial mesh)  
+- **Hybrid topology:** combination of multiple topologies  
+- Most modern LANs use **star topology** with switches
+
+### The OSI Reference Model
+- A **conceptual framework** for understanding network communication  
+- Divides networking into **7 layers**, each with specific responsibilities  
+- Each layer provides services to the layer above and uses services from the layer below  
+- Enables interoperability between different vendors and technologies  
+- **Protocol Data Units (PDUs):** data is encapsulated at each layer
+
+| Layer | Name | PDU | Function |
+|-------|------|-----|----------|
+| 7 | Application | Data | User interface, application services |
+| 6 | Presentation | Data | Data formatting, encryption, compression |
+| 5 | Session | Data | Session management, dialog control |
+| 4 | Transport | Segment | End-to-end communication, reliability |
+| 3 | Network | Packet | Logical addressing, routing |
+| 2 | Data Link | Frame | Physical addressing, error detection |
+| 1 | Physical | Bits | Physical transmission of raw bits |
+
+---
+
+## Layer 1: Physical Layer
+
+### Responsibilities
+- Transmission of raw **bit streams** over physical medium  
+- Defines electrical, mechanical, and timing specifications  
+- Handles **encoding/decoding** of bits into signals (electrical, optical, radio)
+
+### Physical Media
+- **Copper cables:**  
+  - Coaxial cable (legacy)  
+  - Twisted pair: Cat5, Cat5e, Cat6, Cat6a (Ethernet)  
+- **Fiber optic cables:**  
+  - Single-mode (long distance)  
+  - Multi-mode (shorter distance, data centers)  
+- **Wireless:**  
+  - Wi-Fi (IEEE 802.11 standards)  
+  - Bluetooth, cellular (4G/5G)
+
+### Layer 1 Devices
+- **Hubs:** broadcast data to all ports (obsolete, replaced by switches)  
+- **Repeaters:** amplify signals to extend network range  
+- **Network Interface Cards (NICs):** connect computers to network media  
+- **Modems:** modulate/demodulate signals for transmission
+
+---
+
+## Layer 2: Data Link Layer
+
+### Responsibilities
+- **Framing:** encapsulating network layer packets into frames  
+- **Physical addressing:** using **MAC addresses** to identify devices  
+- **Error detection:** detecting transmission errors (CRC checksums)  
+- **Media access control:** managing access to shared medium (CSMA/CD, CSMA/CA)
+
+### MAC Addresses
+- **Media Access Control (MAC) address** — unique hardware identifier  
+- **48-bit address**, typically written as 6 pairs of hex digits: `00:1A:2B:3C:4D:5E`  
+- First 24 bits: **OUI (Organizationally Unique Identifier)** — identifies manufacturer  
+- Last 24 bits: device-specific identifier  
+- MAC addresses are **burned into** network interface hardware (but can be spoofed)  
+- Used for **local network** communication (within the same LAN segment)
+
+### Layer 2 Devices
+- **Switches:** forward frames based on MAC addresses (MAC address table)  
+- **Bridges:** connect network segments (largely replaced by switches)  
+- **Wireless Access Points (WAPs):** bridge wireless and wired networks
+
+### Ethernet (IEEE 802.3)
+- The dominant LAN technology  
+- Defines frame format, addressing, and media access methods  
+- Modern Ethernet uses full-duplex communication with switches (no collisions)  
+- Speeds: 10 Mbps → 100 Mbps → 1 Gbps → 10 Gbps → 100 Gbps
+
+---
+
+## Layer 3: Network Layer
+
+### Responsibilities
+- **Logical addressing:** assigning IP addresses to devices  
+- **Routing:** determining the best path for packets across networks  
+- **Packet forwarding:** moving packets from source to destination  
+- **Fragmentation:** breaking large packets into smaller ones if needed
+
+### IP (Internet Protocol)
+- The **core protocol** of the Internet  
+- Provides **connectionless**, **best-effort** delivery (no guarantees)  
+- Two versions in use: **IPv4** (most common) and **IPv6** (growing adoption)
+
+### IPv4 Addresses
+- **32-bit address**, written as four decimal octets: `192.168.1.100`  
+- **Address space:** 2³² = ~4.3 billion addresses (exhausted)  
+- **Address classes (historical):**  
+  - Class A: `1.0.0.0` – `126.255.255.255` (large networks)  
+  - Class B: `128.0.0.0` – `191.255.255.255` (medium networks)  
+  - Class C: `192.0.0.0` – `223.255.255.255` (small networks)  
+- Modern approach: **CIDR (Classless Inter-Domain Routing)**
+
+### Subnetting and CIDR
+- **Subnet mask:** defines which portion of IP is network vs. host  
+  - Example: `255.255.255.0` or `/24` — first 24 bits are network  
+- **Network address:** identifies the subnet (host bits = 0)  
+- **Broadcast address:** reaches all hosts in subnet (host bits = 1)  
+- Example: `192.168.1.0/24`  
+  - Network: `192.168.1.0`  
+  - Hosts: `192.168.1.1` – `192.168.1.254`  
+  - Broadcast: `192.168.1.255`
+
+### Private vs Public IP Addresses
+- **Private addresses:** not routable on the Internet (used in LANs)  
+  - `10.0.0.0/8` — Class A private  
+  - `172.16.0.0/12` — Class B private  
+  - `192.168.0.0/16` — Class C private  
+- **Public addresses:** globally unique, routable on the Internet  
+- **NAT (Network Address Translation):** allows private IPs to access Internet via a single public IP
+
+### Special IP Addresses
+- `127.0.0.1` — **loopback** (localhost, refers to the local machine)  
+- `0.0.0.0` — "any" address (used by servers to listen on all interfaces)  
+- `255.255.255.255` — limited broadcast (local network broadcast)
+
+### DHCP (Dynamic Host Configuration Protocol)
+- Automatically assigns IP addresses to devices on a network  
+- **DHCP server** manages a pool of available addresses  
+- **DHCP lease process:**  
+  1. **Discover:** client broadcasts request for IP  
+  2. **Offer:** server offers an available IP  
+  3. **Request:** client requests the offered IP  
+  4. **Acknowledge:** server confirms the assignment  
+- Also provides: subnet mask, default gateway, DNS servers
+
+### Routing
+- **Routers** connect different networks and forward packets between them  
+- **Routing table:** maps destination networks to next-hop routers  
+- **Default gateway:** router used when no specific route matches  
+- **Routing protocols:**  
+  - Static routing (manually configured)  
+  - Dynamic routing: RIP, OSPF, BGP (automatic route discovery)  
+- **Hops:** each router a packet passes through is one hop  
+- Use `traceroute` (Linux) / `tracert` (Windows) to see the path
+
+### Layer 3 Devices
+- **Routers:** forward packets based on IP addresses  
+- **Layer 3 switches:** switches with routing capabilities
+
+### IPv6 (Brief Overview)
+- **128-bit addresses:** vastly larger address space (3.4 × 10³⁸)  
+- Written in hexadecimal: `2001:0db8:85a3:0000:0000:8a2e:0370:7334`  
+- Simplified notation: `2001:db8:85a3::8a2e:370:7334`  
+- No NAT required (enough addresses for every device)  
+- Built-in security (IPsec), better multicast support
+
+---
+
+## Layer 4: Transport Layer
+
+### Responsibilities
+- **End-to-end communication** between applications on different hosts  
+- **Segmentation:** breaking data into segments  
+- **Multiplexing:** multiple applications sharing network via **ports**  
+- **Reliability** (optional): ensuring data arrives correctly and in order
+
+### Ports
+- **16-bit number** (0–65535) identifying a specific application/service  
+- Combined with IP address forms a **socket:** `IP:port` (e.g., `192.168.1.100:8080`)  
+- **Well-known ports (0–1023):** reserved for standard services  
+  - HTTP: 80, HTTPS: 443, SSH: 22, FTP: 21, SMTP: 25, DNS: 53  
+- **Registered ports (1024–49151):** assigned to specific applications  
+- **Dynamic/private ports (49152–65535):** used by client applications
+
+### TCP (Transmission Control Protocol)
+- **Connection-oriented:** establishes connection before data transfer  
+- **Reliable delivery:** guarantees all data arrives correctly and in order  
+- **Flow control:** prevents sender from overwhelming receiver  
+- **Congestion control:** adapts to network conditions  
+- **Three-way handshake (connection establishment):**  
+  1. Client → Server: **SYN** (synchronize)  
+  2. Server → Client: **SYN-ACK** (synchronize-acknowledge)  
+  3. Client → Server: **ACK** (acknowledge)  
+- **Four-way termination:** FIN → ACK → FIN → ACK  
+- **Use cases:** web browsing, email, file transfer, SSH
+
+### UDP (User Datagram Protocol)
+- **Connectionless:** no connection establishment  
+- **Unreliable:** no guarantee of delivery, order, or duplicate protection  
+- **Low overhead:** minimal protocol headers  
+- **Fast:** no handshake, no waiting for acknowledgments  
+- **Use cases:** DNS queries, video streaming, online gaming, VoIP  
+- Applications handle reliability if needed
+
+### TCP vs UDP Comparison
+
+| Feature | TCP | UDP |
+|---------|-----|-----|
+| Connection | Connection-oriented | Connectionless |
+| Reliability | Guaranteed delivery | Best-effort |
+| Ordering | Maintains order | No ordering |
+| Speed | Slower (overhead) | Faster (minimal overhead) |
+| Flow Control | Yes | No |
+| Use Cases | HTTP, FTP, SSH, Email | DNS, Streaming, Gaming |
+
+---
+
+## Layers 5 & 6: Session and Presentation
+
+### Layer 5: Session Layer
+- Manages **sessions** (ongoing conversations) between applications  
+- Handles session establishment, maintenance, and termination  
+- **Dialog control:** determines who can transmit (half-duplex, full-duplex)  
+- **Synchronization:** checkpoints for resuming interrupted transfers  
+- In practice, often handled by application layer protocols
+
+### Layer 6: Presentation Layer
+- **Data format translation:** converting between different data formats  
+- **Encryption/Decryption:** securing data (e.g., TLS/SSL)  
+- **Compression/Decompression:** reducing data size  
+- **Character encoding:** ASCII, UTF-8, EBCDIC  
+- Examples: JPEG, GIF, MPEG encoding; TLS encryption
+
+**Note:** In the TCP/IP model, Layers 5–7 are often combined into a single **Application Layer**.
+
+---
+
+## Layer 7: Application Layer
+
+### Responsibilities
+- Provides network services **directly to end-users** and applications  
+- Implements **application protocols** for specific services  
+- Interfaces with user applications (browsers, email clients, etc.)
+
+### DNS (Domain Name System)
+- Translates **domain names** (e.g., `google.com`) to IP addresses  
+- Hierarchical distributed database  
+- **DNS hierarchy:**  
+  - Root servers (`.`)  
+  - Top-level domains (TLDs): `.com`, `.org`, `.net`, country codes  
+  - Second-level domains: `google.com`, `github.com`  
+  - Subdomains: `mail.google.com`  
+- **DNS query process:**  
+  1. Client queries local DNS resolver  
+  2. Resolver queries root server → TLD server → authoritative server  
+  3. IP address returned to client  
+- **DNS record types:**  
+  - **A:** IPv4 address mapping  
+  - **AAAA:** IPv6 address mapping  
+  - **CNAME:** canonical name (alias)  
+  - **MX:** mail exchange servers  
+  - **NS:** name servers  
+- Tools: `nslookup`, `dig`, `host`
+
+### HTTP/HTTPS (Web)
+- **HyperText Transfer Protocol** — foundation of the World Wide Web  
+- **Request-response model:** client sends request, server returns response  
+- **HTTP methods:** GET, POST, PUT, DELETE, PATCH, etc.  
+- **HTTPS:** HTTP over TLS/SSL (encrypted, secure)  
+- Default ports: HTTP (80), HTTPS (443)
+
+### Other Application Layer Protocols
+- **FTP (File Transfer Protocol):** file transfer (ports 20, 21)  
+- **SMTP (Simple Mail Transfer Protocol):** sending email (port 25)  
+- **POP3/IMAP:** receiving email (ports 110, 143)  
+- **SSH (Secure Shell):** secure remote access (port 22)  
+- **Telnet:** unencrypted remote access (port 23, legacy)  
+- **SNMP:** network management (ports 161, 162)  
+- **NTP:** time synchronization (port 123)
+
+---
+
+## TCP/IP Protocol Stack
+
+### OSI vs TCP/IP Model
+The **TCP/IP model** (also called the Internet model) is a simplified, practical model used for the Internet:
+
+| TCP/IP Layer | OSI Layers | Protocols |
+|--------------|------------|-----------|
+| Application | 7, 6, 5 | HTTP, HTTPS, FTP, SMTP, DNS, SSH |
+| Transport | 4 | TCP, UDP |
+| Internet | 3 | IP, ICMP, ARP |
+| Network Access | 2, 1 | Ethernet, Wi-Fi, PPP |
+
+### Key Differences
+- TCP/IP has **4 layers** vs OSI's 7  
+- TCP/IP is **protocol-specific** (describes actual Internet protocols)  
+- OSI is **conceptual** (vendor-neutral reference model)  
+- TCP/IP combines Session, Presentation, Application into one layer  
+- TCP/IP combines Physical and Data Link into Network Access layer
+
+### ARP (Address Resolution Protocol)
+- Maps IP addresses to MAC addresses  
+- When sending to a local host, ARP finds the corresponding MAC  
+- **ARP request:** "Who has IP X? Tell me your MAC"  
+- **ARP reply:** "I have IP X, my MAC is Y"  
+- ARP cache stores recent mappings (`arp -a` to view)
+
+### ICMP (Internet Control Message Protocol)
+- Network diagnostics and error reporting  
+- Used by `ping` (echo request/reply)  
+- Used by `traceroute` (TTL exceeded messages)  
+- Error messages: destination unreachable, time exceeded, etc.
+
+---
+
+## Practice / Lab
+
+### Exploring Network Configuration
+- Use `ip addr` (or `ifconfig`) to view network interfaces and IP addresses  
+- Use `ip route` to view the routing table and default gateway  
+- Identify your MAC address with `ip link` or `ifconfig`  
+- Check DHCP lease information in `/var/lib/dhcp/`
+
+### DNS Resolution
+- Use `nslookup` or `dig` to query DNS records for various domains  
+- Trace the DNS resolution process with `dig +trace google.com`  
+- View your DNS servers in `/etc/resolv.conf`  
+- Examine `/etc/hosts` for local hostname mappings
+
+### Testing Connectivity
+- Use `ping` to test reachability to local and remote hosts  
+- Use `traceroute` to view the path packets take to a destination  
+- Observe how many hops and latency vary for different destinations
+
+### Inspecting Network Traffic
+- Use `ss` or `netstat` to view active connections and listening ports  
+- Identify TCP vs UDP connections  
+- See which ports your system is listening on (`ss -tuln`)
+
+### TCP Three-Way Handshake
+- Use `tcpdump` or Wireshark to capture TCP connection establishment  
+- Observe SYN, SYN-ACK, ACK packets  
+- Capture and analyze HTTP traffic
+
+### ARP and MAC Addresses
+- View the ARP cache with `arp -a` or `ip neigh`  
+- Observe ARP requests/replies with `tcpdump -n arp`
+
+---
+
+## Homework
+- *(Socket programming tasks will be assigned after the Sockets topic)*
+
+---
+
+## References & Resources
+
+**Required**
+- [Computer Networks Crash Course (Video)](https://www.youtube.com/watch?v=3QhU9jd03a0)  
+- [OSI Model Explained (Video)](https://www.youtube.com/watch?v=vv4y_uOneC0)  
+- [TCP/IP Model vs OSI Model](https://www.youtube.com/watch?v=OTwp3xtd4dg)  
+- [IP Addresses and Subnetting](https://www.youtube.com/watch?v=tcae4TSSMo8)  
+- [TCP vs UDP Comparison](https://www.youtube.com/watch?v=uwoD5YsGACg)  
+- [How DNS Works (Video)](https://www.youtube.com/watch?v=mpQZVYPuDGU)
+
+**Recommended**
+- [Beej's Guide to Network Programming](https://beej.us/guide/bgnet/) — excellent resource for socket programming  
+- [RFC 791: Internet Protocol](https://tools.ietf.org/html/rfc791) — official IP specification  
+- [RFC 793: Transmission Control Protocol](https://tools.ietf.org/html/rfc793) — official TCP specification  
+- [RFC 768: User Datagram Protocol](https://tools.ietf.org/html/rfc768) — official UDP specification  
+- [Computer Networking: A Top-Down Approach](https://gaia.cs.umass.edu/kurose_ross/index.php) — Kurose & Ross textbook  
+- Stevens, *Unix Network Programming, Volume 1: The Sockets Networking API*  
+- [Networking Fundamentals (IBM)](https://www.ibm.com/docs/en/aix/7.2?topic=concepts-tcpip-protocols)
+
+**Tools Documentation**
+- [Linux manual page - ip(8)](https://man7.org/linux/man-pages/man8/ip.8.html)  
+- [Linux manual page - ss(8)](https://man7.org/linux/man-pages/man8/ss.8.html)  
+- [Linux manual page - ping(8)](https://man7.org/linux/man-pages/man8/ping.8.html)  
+- [Linux manual page - traceroute(8)](https://man7.org/linux/man-pages/man8/traceroute.8.html)  
+- [Linux manual page - tcpdump(8)](https://man7.org/linux/man-pages/man8/tcpdump.8.html)
+
+---
+
+## Quiz (Self-check)
+
+1. What are the 7 layers of the OSI model? Name them in order from bottom to top.  
+2. What is the difference between a MAC address and an IP address?  
+3. At which OSI layer do switches operate? What about routers?  
+4. What is the purpose of subnetting, and how does a subnet mask work?  
+5. Explain the difference between private and public IP addresses.  
+6. What is DHCP, and what information does it provide to clients?  
+7. Describe the TCP three-way handshake process.  
+8. When would you choose UDP over TCP?  
+9. What is the role of DNS in networking?  
+10. What is NAT, and why is it commonly used?  
+11. What is the difference between the OSI and TCP/IP models?  
+12. What is ARP, and why is it necessary?  
+13. What well-known port numbers are used by HTTP, HTTPS, and SSH?  
+14. How does `traceroute` work?  
+15. What happens when you type `google.com` in your browser? (Describe the network flow)
+
+---
+
+## Suggested Tools
+- `ip` — modern tool for network configuration (`ip addr`, `ip route`, `ip link`)  
+- `ifconfig` — legacy tool for network interface configuration  
+- `ping` — test network connectivity using ICMP  
+- `traceroute` / `tracepath` — trace packet route to destination  
+- `nslookup` / `dig` / `host` — DNS lookup tools  
+- `ss` / `netstat` — display socket statistics and connections  
+- `arp` — view and manipulate ARP cache  
+- `tcpdump` — command-line packet analyzer  
+- `wireshark` — GUI packet analyzer (excellent for learning)  
+- `curl` / `wget` — command-line HTTP clients  
+- `nc` (netcat) — versatile networking utility for testing
+
+
