@@ -353,6 +353,13 @@ export const pageMap = [{
         "sidebarTitle": "Intro"
       }
     }, {
+      name: "networking",
+      route: "/system-programming/topics/networking",
+      frontMatter: {
+        "description": "Introduction to computer networking — understanding network topologies, the OSI model, IP addressing, routing, transport protocols (TCP/UDP), and application layer protocols to prepare for socket programming.",
+        "sidebarTitle": "Networking"
+      }
+    }, {
       name: "pipes",
       route: "/system-programming/topics/pipes",
       frontMatter: {
