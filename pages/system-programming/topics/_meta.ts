@@ -10,5 +10,6 @@ export default {
   'classical-sync-problems': "Classical Sync Problems",
   'signals': "Signals",
   'pipes': "Pipes and FIFOs",
-  'shared-memory': "Shared Memory"
+  'shared-memory': "Shared Memory",
+  'networking': "Networking"
 }
