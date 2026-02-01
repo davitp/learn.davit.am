@@ -3,5 +3,6 @@ export default {
   'file-systems': 'File Systems',
   'processes': 'Processes',
   'threads': 'Threads',
-  'ipc': 'IPC'
+  'ipc': 'IPC',
+  'networking': 'Networking'
 }

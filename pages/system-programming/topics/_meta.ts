@@ -11,5 +11,6 @@ export default {
   'signals': "Signals",
   'pipes': "Pipes and FIFOs",
   'shared-memory': "Shared Memory",
-  'networking': "Networking"
+  'networking': "Networking",
+  'sockets': "Sockets"
 }

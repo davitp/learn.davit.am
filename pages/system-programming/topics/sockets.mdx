@@ -1,0 +1,347 @@
+---
+description: Introduction to socket programming in Unix/Linux — understanding the socket API, TCP and UDP communication, client-server architecture, and building network applications.
+---
+
+# Sockets
+
+## Overview
+This week introduces **socket programming** — the fundamental API for network communication in Unix/Linux systems.  
+Building on the networking concepts covered previously, students will learn how to create network applications using the **BSD socket interface**. We will explore different socket types (stream and datagram), socket domains (Unix and Internet), and implement both client and server programs.
+
+By the end of this week, students will understand how to establish TCP connections, send UDP datagrams, handle multiple clients, and build robust networked applications using the socket API.
+
+---
+
+## Key Concepts
+
+### What are Sockets?
+- A **socket** is an endpoint for communication between two machines  
+- Sockets provide a **bidirectional** communication channel  
+- The **BSD socket API** — standard interface for network programming (originated in 4.2BSD Unix)  
+- Sockets abstract network communication as file descriptors (read/write paradigm)  
+- Used for both **inter-machine** (network) and **intra-machine** (local) communication  
+- Foundation for virtually all networked applications: web servers, databases, chat applications
+
+### Socket Domains (Address Families)
+- **`AF_INET`** (IPv4 Internet domain)  
+  - Communication over IPv4 networks  
+  - Uses IP addresses and port numbers  
+  - Most common for network applications  
+- **`AF_INET6`** (IPv6 Internet domain)  
+  - Communication over IPv6 networks  
+  - 128-bit addresses for larger address space  
+- **`AF_UNIX` / `AF_LOCAL`** (Unix domain)  
+  - Communication between processes on the same machine  
+  - Uses filesystem pathnames instead of IP addresses  
+  - Faster than Internet sockets for local IPC (no network stack overhead)  
+  - Also known as Unix domain sockets or local sockets
+
+### Socket Types
+- **`SOCK_STREAM`** (Stream sockets)  
+  - Connection-oriented, reliable, bidirectional byte stream  
+  - Uses **TCP** for Internet domain (`AF_INET`)  
+  - Guarantees delivery and ordering  
+  - Data arrives as a continuous stream (no message boundaries)  
+  - Must establish connection before data transfer  
+- **`SOCK_DGRAM`** (Datagram sockets)  
+  - Connectionless, unreliable message delivery  
+  - Uses **UDP** for Internet domain  
+  - Preserves message boundaries (each send = one receive)  
+  - No connection establishment required  
+  - Faster but may lose, duplicate, or reorder messages  
+- **`SOCK_RAW`** (Raw sockets)  
+  - Direct access to lower-level protocols (IP, ICMP)  
+  - Requires root privileges  
+  - Used for network tools like `ping`, `traceroute`
+
+### Socket Address Structures
+- **`struct sockaddr`** — generic socket address (used in function prototypes)  
+- **`struct sockaddr_in`** — IPv4 socket address:
+  ```c
+  struct sockaddr_in {
+      sa_family_t    sin_family;  // AF_INET
+      in_port_t      sin_port;    // Port number (network byte order)
+      struct in_addr sin_addr;    // IPv4 address
+  };
+  ```
+- **`struct sockaddr_in6`** — IPv6 socket address  
+- **`struct sockaddr_un`** — Unix domain socket address:
+  ```c
+  struct sockaddr_un {
+      sa_family_t sun_family;  // AF_UNIX
+      char        sun_path[];  // Pathname
+  };
+  ```
+- Always cast specific address types to `struct sockaddr *` when calling socket functions
+
+### Byte Ordering
+- **Network byte order:** big-endian (most significant byte first)  
+- **Host byte order:** varies by architecture (x86 is little-endian)  
+- **Conversion functions (must use for portability):**  
+  - `htons()` — host to network short (16-bit, for ports)  
+  - `htonl()` — host to network long (32-bit, for addresses)  
+  - `ntohs()` — network to host short  
+  - `ntohl()` — network to host long  
+- **Address conversion:**  
+  - `inet_pton()` — presentation (string) to network binary  
+  - `inet_ntop()` — network binary to presentation (string)  
+  - Legacy: `inet_addr()`, `inet_ntoa()` (IPv4 only, avoid in new code)
+
+### Core Socket System Calls
+
+#### Creating a Socket
+```c
+int socket(int domain, int type, int protocol);
+```
+- Creates a socket and returns a file descriptor  
+- `domain`: `AF_INET`, `AF_INET6`, or `AF_UNIX`  
+- `type`: `SOCK_STREAM`, `SOCK_DGRAM`, or `SOCK_RAW`  
+- `protocol`: usually `0` (default protocol for the type)
+
+#### Server-Side Calls
+```c
+int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+```
+- Assigns a local address (IP + port) to a socket  
+- Required for servers to specify which address/port to listen on  
+- Use `INADDR_ANY` (or `in6addr_any`) to accept connections on any interface
+
+```c
+int listen(int sockfd, int backlog);
+```
+- Marks a stream socket as passive (willing to accept connections)  
+- `backlog`: maximum length of pending connection queue  
+- Only for `SOCK_STREAM` sockets
+
+```c
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+```
+- Accepts a pending connection from the queue  
+- **Blocks** until a client connects  
+- Returns a **new socket** for the accepted connection  
+- Original socket continues listening for more connections  
+- `addr` filled with client's address (can be `NULL`)
+
+#### Client-Side Calls
+```c
+int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+```
+- Establishes a connection to a server (TCP) or sets default destination (UDP)  
+- For TCP: initiates three-way handshake  
+- For UDP: just sets the peer address (no actual connection)
+
+#### Data Transfer
+```c
+ssize_t send(int sockfd, const void *buf, size_t len, int flags);
+ssize_t recv(int sockfd, void *buf, size_t len, int flags);
+```
+- `send()` — transmit data on a connected socket  
+- `recv()` — receive data from a connected socket  
+- Common flags: `MSG_DONTWAIT` (non-blocking), `MSG_PEEK` (peek without removing)  
+- Can also use `read()` / `write()` for basic operations
+
+```c
+ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
+               const struct sockaddr *dest_addr, socklen_t addrlen);
+ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
+                 struct sockaddr *src_addr, socklen_t *addrlen);
+```
+- `sendto()` / `recvfrom()` — for connectionless (UDP) communication  
+- Specify destination/source address with each call  
+- Essential for UDP servers handling multiple clients
+
+#### Closing Sockets
+```c
+int close(int sockfd);
+int shutdown(int sockfd, int how);
+```
+- `close()` — close the socket file descriptor  
+- `shutdown()` — selectively close read/write directions:  
+  - `SHUT_RD` — no more receives  
+  - `SHUT_WR` — no more sends (sends FIN for TCP)  
+  - `SHUT_RDWR` — both directions
+
+### TCP Client-Server Model
+
+**Server workflow:**
+1. `socket()` — create socket  
+2. `bind()` — bind to address and port  
+3. `listen()` — mark as passive, set backlog  
+4. `accept()` — accept client connection (returns new socket)  
+5. `recv()` / `send()` — communicate with client  
+6. `close()` — close client socket  
+7. Repeat from step 4 for next client
+
+**Client workflow:**
+1. `socket()` — create socket  
+2. `connect()` — connect to server  
+3. `send()` / `recv()` — communicate with server  
+4. `close()` — close socket
+
+### UDP Client-Server Model
+
+**Server workflow:**
+1. `socket()` — create datagram socket  
+2. `bind()` — bind to address and port  
+3. `recvfrom()` — receive datagram (get client address)  
+4. `sendto()` — send response to client address  
+5. Repeat from step 3
+
+**Client workflow:**
+1. `socket()` — create datagram socket  
+2. `sendto()` — send datagram to server  
+3. `recvfrom()` — receive response  
+4. `close()` — close socket
+
+### Address Resolution
+- **`getaddrinfo()`** — modern, protocol-independent name/address resolution  
+  ```c
+  int getaddrinfo(const char *node, const char *service,
+                  const struct addrinfo *hints, struct addrinfo **res);
+  ```
+  - Resolves hostnames to addresses  
+  - Handles both IPv4 and IPv6  
+  - Returns linked list of results  
+  - Always call `freeaddrinfo()` to free results  
+- **`gethostbyname()`** — legacy, IPv4 only (deprecated, avoid)  
+- **`getnameinfo()`** — reverse lookup (address to hostname)
+
+### Socket Options
+```c
+int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
+int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen);
+```
+- **`SO_REUSEADDR`** — allow reuse of local addresses (essential for servers)  
+- **`SO_REUSEPORT`** — allow multiple sockets to bind to same port  
+- **`SO_KEEPALIVE`** — enable TCP keep-alive probes  
+- **`SO_RCVBUF` / `SO_SNDBUF`** — set receive/send buffer sizes  
+- **`TCP_NODELAY`** — disable Nagle's algorithm (reduce latency)
+
+### Handling Multiple Clients
+- **Iterative server:** handles one client at a time (simple but doesn't scale)  
+- **Concurrent server approaches:**  
+  - **Fork per client:** `fork()` a child process for each connection  
+  - **Thread per client:** create a thread for each connection  
+  - **I/O multiplexing:** `select()`, `poll()`, or `epoll()` to handle multiple connections in one process  
+  - **Thread pool:** pre-created threads handle connections from a queue  
+- I/O multiplexing is most efficient for high-concurrency servers
+
+### Common Pitfalls
+- **Forgetting byte order conversion** — corrupted ports and addresses  
+- **Not checking return values** — silent failures  
+- **Ignoring partial sends/receives** — TCP may split or combine data  
+- **Not handling `SIGPIPE`** — crash when writing to closed connection  
+- **Address already in use** — use `SO_REUSEADDR` socket option  
+- **Blocking indefinitely** — use timeouts or non-blocking I/O  
+- **Resource leaks** — always close sockets, even on errors
+
+---
+
+## Practice / Lab
+
+### Basic TCP Echo Server
+- Write a TCP server that listens on a specified port.  
+- Accept client connections and echo back any data received.  
+- Test with `nc` (netcat) or `telnet`.
+
+### TCP Client
+- Write a TCP client that connects to your echo server.  
+- Send user input to the server and display responses.  
+- Handle connection errors gracefully.
+
+### UDP Echo Server and Client
+- Implement the same echo functionality using UDP.  
+- Compare the code structure with TCP version.  
+- Observe behavior differences (no connection, message boundaries).
+
+### Multi-Client Server
+- Modify your TCP server to handle multiple clients concurrently.  
+- Try both fork-based and thread-based approaches.  
+- Test with multiple simultaneous client connections.
+
+### Unix Domain Sockets
+- Create a simple IPC mechanism using `AF_UNIX` sockets.  
+- Compare performance with Internet sockets for local communication.
+
+### Address Resolution
+- Write a program that uses `getaddrinfo()` to resolve hostnames.  
+- Handle both IPv4 and IPv6 results.  
+- Print all resolved addresses for a given hostname.
+
+---
+
+## Homework
+- [NET-1: Echo Server](/system-programming/tasks/networking/echo-server/)
+
+---
+
+## References & Resources
+
+**Required**
+- [Beej's Guide to Network Programming](https://beej.us/guide/bgnet/) — the definitive tutorial for socket programming  
+- [Socket Programming in C (Video)](https://www.youtube.com/watch?v=LtXEMwSG5-8)  
+- [TCP Server-Client in C](https://www.youtube.com/watch?v=fmn-pRvNaho)  
+- [UDP Server-Client in C](https://www.youtube.com/watch?v=uIanSvWou1M)  
+- [Socket Programming (GeeksforGeeks)](https://www.geeksforgeeks.org/socket-programming-cc/)  
+- Kerrisk, *The Linux Programming Interface*  
+  - Chapter 56: Sockets — Introduction  
+  - Chapter 57: Sockets — Unix Domain  
+  - Chapter 58: Sockets — Fundamentals of TCP/IP Networks  
+  - Chapter 59: Sockets — Internet Domains  
+  - Chapter 60: Sockets — Server Design  
+- Stevens, *Unix Network Programming, Volume 1: The Sockets Networking API* — the classic reference
+
+**Recommended**
+- [Linux manual page - socket(2)](https://man7.org/linux/man-pages/man2/socket.2.html)  
+- [Linux manual page - socket(7)](https://man7.org/linux/man-pages/man7/socket.7.html)  
+- [Linux manual page - bind(2)](https://man7.org/linux/man-pages/man2/bind.2.html)  
+- [Linux manual page - listen(2)](https://man7.org/linux/man-pages/man2/listen.2.html)  
+- [Linux manual page - accept(2)](https://man7.org/linux/man-pages/man2/accept.2.html)  
+- [Linux manual page - connect(2)](https://man7.org/linux/man-pages/man2/connect.2.html)  
+- [Linux manual page - send(2)](https://man7.org/linux/man-pages/man2/send.2.html)  
+- [Linux manual page - recv(2)](https://man7.org/linux/man-pages/man2/recv.2.html)  
+- [Linux manual page - getaddrinfo(3)](https://man7.org/linux/man-pages/man3/getaddrinfo.3.html)  
+- [Linux manual page - ip(7)](https://man7.org/linux/man-pages/man7/ip.7.html)  
+- [Linux manual page - tcp(7)](https://man7.org/linux/man-pages/man7/tcp.7.html)  
+- [Linux manual page - udp(7)](https://man7.org/linux/man-pages/man7/udp.7.html)  
+- [Linux manual page - unix(7)](https://man7.org/linux/man-pages/man7/unix.7.html)  
+- [Socket Programming Tutorial (IBM)](https://www.ibm.com/docs/en/i/7.4?topic=programming-socket-basics)  
+- [Understanding Sockets (Baeldung)](https://www.baeldung.com/cs/sockets)  
+- [C10K Problem](http://www.kegel.com/c10k.html) — scalability considerations for socket servers
+
+---
+
+## Quiz (Self-check)
+
+1. What is a socket, and what does it represent?  
+2. What is the difference between `AF_INET` and `AF_UNIX` socket domains?  
+3. Explain the difference between `SOCK_STREAM` and `SOCK_DGRAM` socket types.  
+4. Why do we need byte order conversion functions like `htons()` and `htonl()`?  
+5. What is the purpose of the `bind()` system call?  
+6. What is the difference between `listen()` and `accept()`?  
+7. Why does `accept()` return a new socket file descriptor?  
+8. When would you use `sendto()` / `recvfrom()` instead of `send()` / `recv()`?  
+9. What is the purpose of setting `SO_REUSEADDR` on a server socket?  
+10. How does the TCP client-server model differ from the UDP model?  
+11. What is `getaddrinfo()` and why is it preferred over `gethostbyname()`?  
+12. What happens if you write to a TCP socket after the peer has closed the connection?  
+13. What are three approaches for handling multiple clients in a server?  
+14. How do Unix domain sockets differ from Internet sockets in terms of addressing?  
+15. What is the typical sequence of system calls for a TCP server?
+
+---
+
+## Suggested Tools
+- `nc` (netcat) — versatile networking utility for testing (TCP/UDP client/server)  
+- `telnet` — simple TCP client for testing servers  
+- `ss` — display socket statistics and active connections  
+- `netstat` — legacy tool for network connections (use `ss` instead)  
+- `lsof -i` — list open network connections  
+- `tcpdump` — capture and analyze network packets  
+- `wireshark` — GUI packet analyzer  
+- `curl` — transfer data using various protocols  
+- `strace` — trace socket system calls  
+- `socat` — multipurpose relay tool (advanced netcat)  
+- `nmap` — network exploration and port scanning  
+- `iperf3` — network bandwidth testing
+

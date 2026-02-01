@@ -1,0 +1,80 @@
+---
+description: >
+    Master socket programming in C/C++ on Linux by building a TCP echo server and client. Learn to use the BSD socket API, handle client connections, and implement basic network communication. Perfect for understanding the fundamentals of network programming.
+---
+
+# NET-1: Echo Server
+
+### Requirements
+
+- Write a C/C++ **TCP echo server** program that:
+  - Creates a TCP socket and binds it to a specified port (default: **8080**)
+  - Listens for incoming client connections
+  - Accepts a client connection and echoes back any data received from the client
+  - Handles the client until the connection is closed, then waits for the next client
+  - Prints connection information (client IP address and port) when a client connects
+  - The server should run indefinitely until terminated with **Ctrl+C**
+
+- Write a C/C++ **TCP client** program that:
+  - Connects to the echo server at a specified IP address and port
+  - Reads user input from stdin and sends it to the server
+  - Receives the echoed response from the server and prints it
+  - Continues until the user types "exit" or closes stdin (Ctrl+D)
+
+- Both programs must use the **BSD socket API** (`socket()`, `bind()`, `listen()`, `accept()`, `connect()`, `send()`, `recv()`, `close()`)
+- Use proper byte order conversion (`htons()`, `inet_pton()`, etc.)
+- Handle errors appropriately (check return values of all socket calls)
+
+### Expected result
+
+The resulting applications should be able to build and execute from command line as follows:
+
+```sh
+make
+./echo-server 8080
+```
+
+In a separate terminal, run the client:
+
+```sh
+./echo-client 127.0.0.1 8080
+```
+
+**Server terminal output:**
+```
+[Server] Listening on port 8080...
+[Server] Client connected from 127.0.0.1:54321
+[Server] Received: Hello, World!
+[Server] Echoed: Hello, World!
+[Server] Received: Testing sockets
+[Server] Echoed: Testing sockets
+[Server] Client disconnected.
+[Server] Waiting for next client...
+```
+
+**Client terminal output:**
+```
+[Client] Connected to 127.0.0.1:8080
+> Hello, World!
+[Server]: Hello, World!
+> Testing sockets
+[Server]: Testing sockets
+> exit
+[Client] Disconnecting...
+```
+
+### Bonus (Optional)
+
+- Support multiple concurrent clients using `fork()` or threads
+- Add a command-line option to specify the server's listening address (not just port)
+- Implement a simple protocol: prefix each message with its length
+
+### Deliverables
+
+The final solution should contain a **Makefile** for building both programs. The Makefile should contain targets:
+- `all` — build both server and client
+- `echo-server` — build only the server
+- `echo-client` — build only the client  
+- `clean` — remove compiled binaries
+
+It's recommended to have compiler and compiler flags declared as Makefile variables. Alternatively, **cmake** could also be used instead of make.
