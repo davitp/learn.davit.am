@@ -6,6 +6,7 @@ import system_programming_tasks_meta from "../../../pages/system-programming/tas
 import system_programming_tasks_environment_meta from "../../../pages/system-programming/tasks/environment/_meta.ts";
 import system_programming_tasks_file_systems_meta from "../../../pages/system-programming/tasks/file-systems/_meta.ts";
 import system_programming_tasks_ipc_meta from "../../../pages/system-programming/tasks/ipc/_meta.ts";
+import system_programming_tasks_networking_meta from "../../../pages/system-programming/tasks/networking/_meta.ts";
 import system_programming_tasks_processes_meta from "../../../pages/system-programming/tasks/processes/_meta.ts";
 import system_programming_tasks_threads_meta from "../../../pages/system-programming/tasks/threads/_meta.ts";
 import system_programming_topics_meta from "../../../pages/system-programming/topics/_meta.ts";
@@ -254,6 +255,25 @@ export const pageMap = [{
         "sidebarTitle": "Ipc"
       }
     }, {
+      name: "networking",
+      route: "/system-programming/tasks/networking",
+      children: [{
+        data: system_programming_tasks_networking_meta
+      }, {
+        name: "echo-server",
+        route: "/system-programming/tasks/networking/echo-server",
+        frontMatter: {
+          "description": "Master socket programming in C/C++ on Linux by building a TCP echo server and client. Learn to use the BSD socket API, handle client connections, and implement basic network communication. Perfect for understanding the fundamentals of network programming.\n",
+          "sidebarTitle": "Echo Server"
+        }
+      }]
+    }, {
+      name: "networking",
+      route: "/system-programming/tasks/networking",
+      frontMatter: {
+        "sidebarTitle": "Networking"
+      }
+    }, {
       name: "processes",
       route: "/system-programming/tasks/processes",
       children: [{
@@ -386,6 +406,13 @@ export const pageMap = [{
       frontMatter: {
         "description": "Introduction to signals in Unix/Linux — understanding asynchronous event notification, signal handling, and sending signals for inter-process communication.",
         "sidebarTitle": "Signals"
+      }
+    }, {
+      name: "sockets",
+      route: "/system-programming/topics/sockets",
+      frontMatter: {
+        "description": "Introduction to socket programming in Unix/Linux — understanding the socket API, TCP and UDP communication, client-server architecture, and building network applications.",
+        "sidebarTitle": "Sockets"
       }
     }, {
       name: "synchronization",
