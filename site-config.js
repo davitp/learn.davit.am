@@ -6,6 +6,7 @@ const protocol = isProduction ? 'https://' : 'http://';
 
 export default {
     domain,
+    name: 'Learning Portal',
     website: `${protocol}${domain}/`,
     github: 'https://github.com/davitp/learn.davit.am/'
 }

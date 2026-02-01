@@ -1,31 +1,58 @@
 {
-    "compilerOptions": {
-      "target": "es5",
-      "lib": ["dom", "dom.iterable", "esnext"],
-      "allowJs": true,
-      "skipLibCheck": true,
-      "strict": false,
-      "strictNullChecks": true,
-      "forceConsistentCasingInFileNames": true,
-      "noEmit": true,
-      "incremental": true,
-      "esModuleInterop": true,
-      "module": "esnext",
-      "resolveJsonModule": true,
-      "isolatedModules": true,
-      "jsx": "preserve",
-      "moduleResolution": "node",
-      "baseUrl": "./",
-      "paths": {
-        "@components/*": ["components/*"],
-        "@lib/*": ["lib/*"],
-      },
-      "plugins": [
-        {
-          "name": "next"
-        }
+  "compilerOptions": {
+    "baseUrl": ".",
+    "target": "es2022",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "incremental": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "module": "esnext",
+    "resolveJsonModule": true,
+    "paths": {
+      "@/*": [
+        "./*"
       ],
+      // These work at runtime due to Next.js internal resolution or custom config,
+      // but we include them here so TypeScript doesn't complain.
+      "private-next-root-dir/*": [
+        "./*"
+      ],
+      "next-mdx-import-source-file": [
+        "./mdx-components.tsx"
+      ]
     },
-    "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", ".next/types/**/*.ts"],
-    "exclude": ["node_modules", "playground"]
-  }
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.{t,j}s",
+    "**/*.{t,j}sx",
+    ".next/types/**/*.{t,j}s",
+    ".next/dev/types/**/*.{t,j}s",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "playground"
+  ]
+}

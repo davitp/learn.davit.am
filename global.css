@@ -1,12 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-.dark .invert-on-dark {
-  filter: invert(1) brightness(1.8);
-}
-
-ul._mt-6, ol._mt-6 {
-  margin-top: 0.6em;
-  margin-bottom: 0.5em;
-}
+@import 'tailwindcss';
+ 
+@import 'nextra-theme-docs/style.css'; 
+ 
+@variant dark (&:where(.dark *));

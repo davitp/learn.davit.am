@@ -1,9 +1,9 @@
-import CLogo from "@components/logos/c-logo";
-import CppLogo from "@components/logos/cpp-logo";
-import DockerLogo from "@components/logos/docker-logo";
-import GithubLogo from "@components/logos/github-logo";
-import LinuxLogo from "@components/logos/linux-logo";
-import UbuntuLogo from "@components/logos/ubuntu-logo";
+import CLogo from "@/components/logos/c-logo";
+import CppLogo from "@/components/logos/cpp-logo";
+import DockerLogo from "@/components/logos/docker-logo";
+import GithubLogo from "@/components/logos/github-logo";
+import LinuxLogo from "@/components/logos/linux-logo";
+import UbuntuLogo from "@/components/logos/ubuntu-logo";
 
 export default function Basics() {
 
