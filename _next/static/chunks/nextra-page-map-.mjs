@@ -95,6 +95,13 @@ export const pageMap = [{
         "sidebarTitle": "Dining Philosophers"
       }
     }, {
+      name: "epoll-server",
+      route: "/system-programming/samples/epoll-server",
+      frontMatter: {
+        "description": "The sample demonstrates how to build a non-blocking TCP server using epoll — creating an epoll instance, registering file descriptors, and dispatching events in a single-threaded loop.",
+        "sidebarTitle": "Epoll Server"
+      }
+    }, {
       name: "make-hole",
       route: "/system-programming/samples/make-hole",
       frontMatter: {
@@ -116,6 +123,13 @@ export const pageMap = [{
         "sidebarTitle": "Open File"
       }
     }, {
+      name: "poll-fds",
+      route: "/system-programming/samples/poll-fds",
+      frontMatter: {
+        "description": "The sample demonstrates how to use poll() to monitor a listening socket and multiple connected clients simultaneously, reading and printing messages from whichever client is ready.",
+        "sidebarTitle": "Poll Fds"
+      }
+    }, {
       name: "read-file",
       route: "/system-programming/samples/read-file",
       frontMatter: {
@@ -128,6 +142,27 @@ export const pageMap = [{
       frontMatter: {
         "description": "This sample demonstrates how to redirect standard output and standard error into a file (using dup/dup2) while keeping possibility to write to the console when needed.",
         "sidebarTitle": "Redirect Output"
+      }
+    }, {
+      name: "select-fds",
+      route: "/system-programming/samples/select-fds",
+      frontMatter: {
+        "description": "The sample demonstrates how to use select() to monitor multiple file descriptors simultaneously — watching both stdin and a TCP listening socket without blocking on either.",
+        "sidebarTitle": "Select Fds"
+      }
+    }, {
+      name: "tcp-client",
+      route: "/system-programming/samples/tcp-client",
+      frontMatter: {
+        "description": "The sample demonstrates how to create a TCP client using the BSD socket API — resolving an address, connecting to a server, and sending a message.",
+        "sidebarTitle": "Tcp Client"
+      }
+    }, {
+      name: "tcp-server",
+      route: "/system-programming/samples/tcp-server",
+      frontMatter: {
+        "description": "The sample demonstrates how to create a TCP server using the BSD socket API — binding to a port, listening for connections, accepting clients one at a time, and reading a message from each.",
+        "sidebarTitle": "Tcp Server"
       }
     }]
   }, {
@@ -266,6 +301,13 @@ export const pageMap = [{
           "description": "Master socket programming in C/C++ on Linux by building a TCP echo server and client. Learn to use the BSD socket API, handle client connections, and implement basic network communication. Perfect for understanding the fundamentals of network programming.\n",
           "sidebarTitle": "Echo Server"
         }
+      }, {
+        name: "multiplexed-sqrt-server",
+        route: "/system-programming/tasks/networking/multiplexed-sqrt-server",
+        frontMatter: {
+          "description": "Build a high-performance multiplexed TCP server in C/C++ on Linux using epoll. The server accepts 4-byte signed integers from multiple simultaneous clients and responds with the square root of their absolute value, demonstrating non-blocking I/O and event-driven design.\n",
+          "sidebarTitle": "Multiplexed Sqrt Server"
+        }
       }]
     }, {
       name: "networking",
@@ -371,6 +413,13 @@ export const pageMap = [{
       frontMatter: {
         "description": "Learn the fundamentals of operating systems, the Linux kernel, GNU/Linux distributions, and basic shell usage. Set up your Linux environment and development tools for system programming.",
         "sidebarTitle": "Intro"
+      }
+    }, {
+      name: "io-multiplexing",
+      route: "/system-programming/topics/io-multiplexing",
+      frontMatter: {
+        "description": "I/O multiplexing in Linux — monitoring multiple file descriptors with select, poll, epoll, and an introduction to io_uring for building high-performance event-driven servers.",
+        "sidebarTitle": "Io Multiplexing"
       }
     }, {
       name: "networking",
