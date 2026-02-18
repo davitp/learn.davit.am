@@ -1,0 +1,131 @@
+---
+description: The sample demonstrates how to create a TCP server using the BSD socket API — binding to a port, listening for connections, accepting clients one at a time, and reading a message from each.
+---
+
+# TCP server
+
+The sample demonstrates how to create a TCP server using the **BSD socket API**. The server binds to a local port, listens for incoming connections, and accepts clients one at a time. For each client it reads one message, prints it to stdout, and closes the connection.
+
+```c
+#include <iostream>
+#include <cstring>
+#include <cerrno>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+#define PORT        9000
+#define BUFFER_SIZE 256
+#define BACKLOG     5
+
+int main() {
+
+    // create a TCP socket (IPv4, stream-based, default protocol)
+    int serverFd = socket(AF_INET, SOCK_STREAM, 0);
+    if (serverFd == -1) {
+        std::cerr << "Socket failed: " << strerror(errno) << std::endl;
+        return errno;
+    }
+
+    // allow the port to be reused immediately after the server exits;
+    // without this, bind() would fail for ~60 seconds after the previous run
+    int opt = 1;
+    int reuseResult = setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    if (reuseResult == -1) {
+        std::cerr << "Setsockopt failed: " << strerror(errno) << std::endl;
+        close(serverFd);
+        return errno;
+    }
+
+    // describe the address the server will bind to:
+    // accept connections on any network interface, on PORT
+    struct sockaddr_in serverAddr;
+    memset(&serverAddr, 0, sizeof(serverAddr));
+    serverAddr.sin_family      = AF_INET;
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+    serverAddr.sin_port        = htons(PORT);  // htons converts to network byte order
+
+    // bind the socket to the local address and port
+    int bindResult = bind(serverFd, (struct sockaddr*) &serverAddr, sizeof(serverAddr));
+    if (bindResult == -1) {
+        std::cerr << "Bind failed: " << strerror(errno) << std::endl;
+        close(serverFd);
+        return errno;
+    }
+
+    // mark the socket as passive — it will only accept incoming connections
+    // BACKLOG is the maximum number of pending connections to queue
+    int listenResult = listen(serverFd, BACKLOG);
+    if (listenResult == -1) {
+        std::cerr << "Listen failed: " << strerror(errno) << std::endl;
+        close(serverFd);
+        return errno;
+    }
+
+    std::cout << "[Server] Listening on port " << PORT << std::endl;
+
+    // keep accepting clients until the program is interrupted
+    while (true) {
+
+        // this structure will be filled with the connecting client's address
+        struct sockaddr_in clientAddr;
+        socklen_t clientLen = sizeof(clientAddr);
+
+        // block here until a client connects; accept() returns a NEW socket
+        // dedicated to that one client — serverFd keeps listening
+        int clientFd = accept(serverFd, (struct sockaddr*) &clientAddr, &clientLen);
+        if (clientFd == -1) {
+            std::cerr << "Accept failed: " << strerror(errno) << std::endl;
+            continue;
+        }
+
+        // convert the binary client IP to a human-readable string
+        char clientIp[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &clientAddr.sin_addr, clientIp, sizeof(clientIp));
+        std::cout << "[Server] Client connected: "
+                  << clientIp << ":" << ntohs(clientAddr.sin_port) << std::endl;
+
+        // read up to BUFFER_SIZE-1 bytes sent by the client
+        char buffer[BUFFER_SIZE];
+        memset(buffer, 0, sizeof(buffer));
+        ssize_t bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
+
+        if (bytesRead > 0) {
+            std::cout << "[Server] Received (" << bytesRead << " bytes): " << buffer << std::endl;
+        } else if (bytesRead == 0) {
+            // the client closed the connection before sending any data
+            std::cout << "[Server] Client disconnected without sending data." << std::endl;
+        } else {
+            std::cerr << "[Server] Recv failed: " << strerror(errno) << std::endl;
+        }
+
+        // close the per-client socket; the listening socket stays open
+        close(clientFd);
+        std::cout << "[Server] Connection closed." << std::endl;
+    }
+
+    // close the listening socket (not reached in this example)
+    close(serverFd);
+
+    return 0;
+}
+```
+
+The file can be compiled and executed as follows:
+```sh
+g++ tcp-server.cpp -o tcp-server
+./tcp-server
+```
+
+Connect with `nc` from another terminal to test:
+```sh
+echo "Hello, server!" | nc 127.0.0.1 9000
+```
+
+The server output should look like:
+```
+[Server] Listening on port 9000
+[Server] Client connected: 127.0.0.1:54312
+[Server] Received (15 bytes): Hello, server!
+[Server] Connection closed.
+```

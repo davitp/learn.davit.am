@@ -1,0 +1,206 @@
+---
+description: The sample demonstrates how to build a non-blocking TCP server using epoll — creating an epoll instance, registering file descriptors, and dispatching events in a single-threaded loop.
+---
+
+# Non-blocking server with epoll
+
+The sample demonstrates how to build a non-blocking TCP server using **epoll**. All sockets are set to non-blocking mode with `SOCK_NONBLOCK` / `accept4()`. The epoll instance tracks the listening socket and every connected client. When a client sends its name the server replies with a personalised greeting and closes the connection.
+
+```c
+#include <iostream>
+#include <cstring>
+#include <cerrno>
+#include <unistd.h>
+#include <fcntl.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/epoll.h>
+
+#define PORT        9003
+#define BACKLOG     10
+#define MAX_EVENTS  32
+#define BUFFER_SIZE 128
+
+int main() {
+
+    // create the listening socket with non-blocking mode set at creation time
+    int serverFd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+    if (serverFd == -1) {
+        std::cerr << "Socket failed: " << strerror(errno) << std::endl;
+        return errno;
+    }
+
+    int opt = 1;
+    int reuseResult = setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    if (reuseResult == -1) {
+        std::cerr << "Setsockopt failed: " << strerror(errno) << std::endl;
+        close(serverFd);
+        return errno;
+    }
+
+    struct sockaddr_in serverAddr;
+    memset(&serverAddr, 0, sizeof(serverAddr));
+    serverAddr.sin_family      = AF_INET;
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+    serverAddr.sin_port        = htons(PORT);
+
+    int bindResult = bind(serverFd, (struct sockaddr*) &serverAddr, sizeof(serverAddr));
+    if (bindResult == -1) {
+        std::cerr << "Bind failed: " << strerror(errno) << std::endl;
+        close(serverFd);
+        return errno;
+    }
+
+    int listenResult = listen(serverFd, BACKLOG);
+    if (listenResult == -1) {
+        std::cerr << "Listen failed: " << strerror(errno) << std::endl;
+        close(serverFd);
+        return errno;
+    }
+
+    // create the epoll instance; EPOLL_CLOEXEC closes it automatically on exec()
+    int epFd = epoll_create1(EPOLL_CLOEXEC);
+    if (epFd == -1) {
+        std::cerr << "Epoll_create1 failed: " << strerror(errno) << std::endl;
+        close(serverFd);
+        return errno;
+    }
+
+    // register the listening socket with the epoll instance
+    struct epoll_event ev;
+    ev.events  = EPOLLIN;
+    ev.data.fd = serverFd;
+    int ctlResult = epoll_ctl(epFd, EPOLL_CTL_ADD, serverFd, &ev);
+    if (ctlResult == -1) {
+        std::cerr << "Epoll_ctl(ADD serverFd) failed: " << strerror(errno) << std::endl;
+        close(serverFd);
+        close(epFd);
+        return errno;
+    }
+
+    std::cout << "[epoll] Server listening on port " << PORT << std::endl;
+
+    // array that epoll_wait fills with the descriptors that are ready
+    struct epoll_event events[MAX_EVENTS];
+
+    while (true) {
+
+        // block until at least one monitored descriptor has an event; -1 means no timeout
+        int nReady = epoll_wait(epFd, events, MAX_EVENTS, -1);
+        if (nReady == -1) {
+            std::cerr << "Epoll_wait failed: " << strerror(errno) << std::endl;
+            break;
+        }
+
+        // process each ready event — only the fired descriptors are in the array
+        for (int i = 0; i < nReady; ++i) {
+
+            int fd = events[i].data.fd;
+
+            if (fd == serverFd) {
+                // the listening socket is ready: drain all pending connections
+                while (true) {
+                    struct sockaddr_in clientAddr;
+                    socklen_t clientLen = sizeof(clientAddr);
+
+                    // accept4 with SOCK_NONBLOCK makes the client socket non-blocking atomically
+                    int clientFd = accept4(serverFd, (struct sockaddr*) &clientAddr, &clientLen, SOCK_NONBLOCK);
+                    if (clientFd == -1) {
+                        // EAGAIN means there are no more pending connections right now
+                        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                            break;
+                        }
+                        std::cerr << "Accept4 failed: " << strerror(errno) << std::endl;
+                        break;
+                    }
+
+                    char clientIp[INET_ADDRSTRLEN];
+                    inet_ntop(AF_INET, &clientAddr.sin_addr, clientIp, sizeof(clientIp));
+                    std::cout << "[epoll] Client connected: "
+                              << clientIp << " (fd=" << clientFd << ")" << std::endl;
+
+                    // register the new client socket with the epoll instance
+                    struct epoll_event clientEv;
+                    clientEv.events  = EPOLLIN;
+                    clientEv.data.fd = clientFd;
+                    int addResult = epoll_ctl(epFd, EPOLL_CTL_ADD, clientFd, &clientEv);
+                    if (addResult == -1) {
+                        std::cerr << "Epoll_ctl(ADD clientFd) failed: " << strerror(errno) << std::endl;
+                        close(clientFd);
+                    }
+                }
+
+            } else {
+                // a client socket is ready — read the name it sent
+                char buffer[BUFFER_SIZE];
+                memset(buffer, 0, sizeof(buffer));
+                ssize_t bytesRead = recv(fd, buffer, sizeof(buffer) - 1, 0);
+
+                if (bytesRead <= 0) {
+                    // 0 = clean close, negative = error
+                    if (bytesRead < 0 && errno != EAGAIN) {
+                        std::cerr << "Recv failed on fd=" << fd << ": " << strerror(errno) << std::endl;
+                    }
+                    std::cout << "[epoll] Client disconnected: fd=" << fd << std::endl;
+
+                    // remove the descriptor from the epoll instance, then close it
+                    epoll_ctl(epFd, EPOLL_CTL_DEL, fd, NULL);
+                    close(fd);
+
+                } else {
+                    // strip a trailing newline if the client sent one (e.g. from nc)
+                    if (buffer[bytesRead - 1] == '\n') {
+                        buffer[bytesRead - 1] = '\0';
+                    }
+
+                    std::cout << "[epoll] fd=" << fd << " sent name: " << buffer << std::endl;
+
+                    // compose a personalised greeting and send it back
+                    char reply[BUFFER_SIZE + 32];
+                    int replyLen = snprintf(reply, sizeof(reply), "Hello, %s!\n", buffer);
+                    send(fd, reply, replyLen, 0);
+
+                    // one exchange is complete — remove and close the client
+                    epoll_ctl(epFd, EPOLL_CTL_DEL, fd, NULL);
+                    close(fd);
+                    std::cout << "[epoll] Replied and closed fd=" << fd << std::endl;
+                }
+            }
+        }
+    }
+
+    close(epFd);
+    close(serverFd);
+
+    return 0;
+}
+```
+
+The file can be compiled and executed as follows:
+```sh
+g++ epoll-server.cpp -o epoll-server
+./epoll-server
+```
+
+Send a name from several terminals simultaneously:
+```sh
+echo "Alice" | nc 127.0.0.1 9003
+echo "Bob"   | nc 127.0.0.1 9003
+```
+
+The server output should look like:
+```
+[epoll] Server listening on port 9003
+[epoll] Client connected: 127.0.0.1 (fd=5)
+[epoll] Client connected: 127.0.0.1 (fd=6)
+[epoll] fd=5 sent name: Alice
+[epoll] Replied and closed fd=5
+[epoll] fd=6 sent name: Bob
+[epoll] Replied and closed fd=6
+```
+
+Each client receives its greeting:
+```
+Hello, Alice!
+Hello, Bob!
+```

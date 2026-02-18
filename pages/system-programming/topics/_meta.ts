@@ -12,5 +12,6 @@ export default {
   'pipes': "Pipes and FIFOs",
   'shared-memory': "Shared Memory",
   'networking': "Networking",
-  'sockets': "Sockets"
+  'sockets': "Sockets",
+  'io-multiplexing': "I/O Multiplexing"
 }

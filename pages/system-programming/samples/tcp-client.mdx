@@ -1,0 +1,94 @@
+---
+description: The sample demonstrates how to create a TCP client using the BSD socket API — resolving an address, connecting to a server, and sending a message.
+---
+
+# TCP client
+
+The sample demonstrates how to create a TCP client using the **BSD socket API**. The client connects to a server at a given IP address and port, sends a short message, and closes the connection.
+
+```c
+#include <iostream>
+#include <cstring>
+#include <cerrno>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+#define PORT 9000
+
+int main(int argc, char* argv[]) {
+
+    // the server IP address can be passed as a command-line argument
+    const char* serverIp = (argc > 1) ? argv[1] : "127.0.0.1";
+
+    // create a TCP socket (IPv4, stream-based)
+    int sockFd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockFd == -1) {
+        std::cerr << "Socket failed: " << strerror(errno) << std::endl;
+        return errno;
+    }
+
+    // fill in the server address structure with the target IP and port
+    struct sockaddr_in serverAddr;
+    memset(&serverAddr, 0, sizeof(serverAddr));
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port   = htons(PORT);
+
+    // convert the dotted-decimal IP string to a binary network address
+    int convResult = inet_pton(AF_INET, serverIp, &serverAddr.sin_addr);
+    if (convResult != 1) {
+        std::cerr << "Invalid address: " << serverIp << std::endl;
+        close(sockFd);
+        return 1;
+    }
+
+    // initiate the TCP three-way handshake with the server
+    int connectResult = connect(sockFd, (struct sockaddr*) &serverAddr, sizeof(serverAddr));
+    if (connectResult == -1) {
+        std::cerr << "Connect failed: " << strerror(errno) << std::endl;
+        close(sockFd);
+        return errno;
+    }
+
+    std::cout << "[Client] Connected to " << serverIp << ":" << PORT << std::endl;
+
+    // the message to deliver to the server
+    const char* message = "Hello from client!";
+
+    // send the message; send() may transmit fewer bytes than requested in one call
+    ssize_t bytesSent = send(sockFd, message, strlen(message), 0);
+    if (bytesSent == -1) {
+        std::cerr << "Send failed: " << strerror(errno) << std::endl;
+        close(sockFd);
+        return errno;
+    }
+
+    std::cout << "[Client] Sent " << bytesSent << " bytes: " << message << std::endl;
+
+    // close the connection — sends a FIN to the server
+    close(sockFd);
+    std::cout << "[Client] Done." << std::endl;
+
+    return 0;
+}
+```
+
+Start the TCP server sample first, then compile and run the client:
+```sh
+g++ tcp-client.cpp -o tcp-client
+./tcp-client 127.0.0.1
+```
+
+The client output should look like:
+```
+[Client] Connected to 127.0.0.1:9000
+[Client] Sent 18 bytes: Hello from client!
+[Client] Done.
+```
+
+And on the server side:
+```
+[Server] Client connected: 127.0.0.1:54401
+[Server] Received (18 bytes): Hello from client!
+[Server] Connection closed.
+```

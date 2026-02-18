@@ -1,0 +1,184 @@
+---
+description: The sample demonstrates how to use poll() to monitor a listening socket and multiple connected clients simultaneously, reading and printing messages from whichever client is ready.
+---
+
+# Monitoring file descriptors with poll
+
+The sample demonstrates how to use **poll()** to monitor multiple file descriptors without the FD limit of `select()`. The server keeps a `pollfd` array that starts with the listening socket and grows as clients connect. Whenever a client sends a message the server reads and prints it; disconnections are detected and the slot is freed.
+
+Unlike `select()`, the `pollfd` array does not need to be rebuilt on every call — only `revents` is overwritten by the kernel.
+
+```c
+#include <iostream>
+#include <cstring>
+#include <cerrno>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <poll.h>
+
+#define PORT        9002
+#define BACKLOG     5
+#define MAX_CLIENTS 16
+#define BUFFER_SIZE 256
+
+int main() {
+
+    // create the TCP listening socket
+    int serverFd = socket(AF_INET, SOCK_STREAM, 0);
+    if (serverFd == -1) {
+        std::cerr << "Socket failed: " << strerror(errno) << std::endl;
+        return errno;
+    }
+
+    int opt = 1;
+    int reuseResult = setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    if (reuseResult == -1) {
+        std::cerr << "Setsockopt failed: " << strerror(errno) << std::endl;
+        close(serverFd);
+        return errno;
+    }
+
+    struct sockaddr_in serverAddr;
+    memset(&serverAddr, 0, sizeof(serverAddr));
+    serverAddr.sin_family      = AF_INET;
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+    serverAddr.sin_port        = htons(PORT);
+
+    int bindResult = bind(serverFd, (struct sockaddr*) &serverAddr, sizeof(serverAddr));
+    if (bindResult == -1) {
+        std::cerr << "Bind failed: " << strerror(errno) << std::endl;
+        close(serverFd);
+        return errno;
+    }
+
+    int listenResult = listen(serverFd, BACKLOG);
+    if (listenResult == -1) {
+        std::cerr << "Listen failed: " << strerror(errno) << std::endl;
+        close(serverFd);
+        return errno;
+    }
+
+    std::cout << "[poll] Server listening on port " << PORT << std::endl;
+
+    // the poll array: slot 0 is always the listening socket;
+    // subsequent slots hold connected client descriptors
+    struct pollfd fds[MAX_CLIENTS + 1];
+    memset(fds, 0, sizeof(fds));
+
+    // register the listening socket as the first entry — watch for new connections
+    fds[0].fd     = serverFd;
+    fds[0].events = POLLIN;
+
+    // track how many entries in the array are currently active
+    int nfds = 1;
+
+    while (true) {
+
+        // block until at least one descriptor in the array is ready; -1 means no timeout
+        int ready = poll(fds, nfds, -1);
+        if (ready == -1) {
+            std::cerr << "Poll failed: " << strerror(errno) << std::endl;
+            break;
+        }
+
+        // walk through all active entries to find which ones have events
+        for (int i = 0; i < nfds; ++i) {
+
+            // skip entries where the kernel reported no events
+            if (fds[i].revents == 0) {
+                continue;
+            }
+
+            if (i == 0) {
+                // slot 0 is the listening socket — a new client is ready to be accepted
+                struct sockaddr_in clientAddr;
+                socklen_t clientLen = sizeof(clientAddr);
+                int clientFd = accept(serverFd, (struct sockaddr*) &clientAddr, &clientLen);
+                if (clientFd == -1) {
+                    std::cerr << "Accept failed: " << strerror(errno) << std::endl;
+                    continue;
+                }
+
+                char clientIp[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &clientAddr.sin_addr, clientIp, sizeof(clientIp));
+                std::cout << "[poll] Client connected: " << clientIp
+                          << " (fd=" << clientFd << ")" << std::endl;
+
+                if (nfds == MAX_CLIENTS + 1) {
+                    // the array is full; reject the new client
+                    std::cerr << "Too many clients, rejecting fd=" << clientFd << std::endl;
+                    close(clientFd);
+                    continue;
+                }
+
+                // append the new client to the next free slot in the array
+                fds[nfds].fd     = clientFd;
+                fds[nfds].events = POLLIN;
+                ++nfds;
+
+            } else {
+                // one of the connected clients has an event
+                int clientFd = fds[i].fd;
+
+                if (fds[i].revents & POLLHUP) {
+                    // the client closed the connection
+                    std::cout << "[poll] Client disconnected: fd=" << clientFd << std::endl;
+                    close(clientFd);
+
+                    // compact the array: move the last entry into the vacated slot
+                    fds[i] = fds[nfds - 1];
+                    --nfds;
+                    --i;  // recheck this slot — it now holds a different descriptor
+                    continue;
+                }
+
+                if (fds[i].revents & POLLIN) {
+                    // the client has data available to read
+                    char buffer[BUFFER_SIZE];
+                    memset(buffer, 0, sizeof(buffer));
+                    ssize_t bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
+
+                    if (bytesRead <= 0) {
+                        // 0 = clean close, -1 = error; either way remove the client
+                        std::cout << "[poll] Client fd=" << clientFd << " disconnected." << std::endl;
+                        close(clientFd);
+                        fds[i] = fds[nfds - 1];
+                        --nfds;
+                        --i;
+                    } else {
+                        std::cout << "[poll] fd=" << clientFd << " says: " << buffer << std::endl;
+                    }
+                }
+            }
+        }
+    }
+
+    close(serverFd);
+
+    return 0;
+}
+```
+
+The file can be compiled and executed as follows:
+```sh
+g++ poll-fds.cpp -o poll-fds
+./poll-fds
+```
+
+Connect several clients simultaneously using `nc` and send messages:
+```sh
+echo "Hello from client A" | nc 127.0.0.1 9002
+echo "Hello from client B" | nc 127.0.0.1 9002
+```
+
+The server output should look like:
+```
+[poll] Server listening on port 9002
+[poll] Client connected: 127.0.0.1 (fd=5)
+[poll] Client connected: 127.0.0.1 (fd=6)
+[poll] fd=5 says: Hello from client A
+[poll] Client fd=5 disconnected.
+[poll] fd=6 says: Hello from client B
+[poll] Client fd=6 disconnected.
+```

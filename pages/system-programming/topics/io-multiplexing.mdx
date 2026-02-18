@@ -1,0 +1,386 @@
+---
+description: I/O multiplexing in Linux — monitoring multiple file descriptors with select, poll, epoll, and an introduction to io_uring for building high-performance event-driven servers.
+---
+
+# I/O Multiplexing
+
+## Overview
+This week introduces **I/O multiplexing** — the technique of monitoring multiple file descriptors simultaneously to determine which ones are ready for I/O, without blocking on any individual one.
+When building servers that handle many simultaneous connections, blocking on a single `read()` or `accept()` is not acceptable. I/O multiplexing solves this by letting the kernel notify your program when descriptors become ready.
+
+By the end of this week, students will understand the difference between blocking and non-blocking I/O, how each multiplexing interface works (`select`, `poll`, `epoll`), when to use each, and how to implement an event-driven server loop.
+
+---
+
+## Key Concepts
+
+### Blocking vs. Non-Blocking I/O
+
+- By default, I/O system calls **block** until data is available or the operation completes
+- A process blocked on `accept()` or `recv()` cannot handle any other descriptor
+- **Non-blocking mode** makes calls return immediately with `EAGAIN` / `EWOULDBLOCK` when they would block
+- Set non-blocking mode with `fcntl()`:
+  ```c
+  int flags = fcntl(fd, F_GETFL, 0);
+  fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+  ```
+- Or pass `SOCK_NONBLOCK` directly to `socket()`:
+  ```c
+  int fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+  ```
+- **Busy-polling non-blocking FDs in a loop wastes CPU** — multiplexing is the right solution
+
+### The Problem: Multiple File Descriptors
+
+- A server may handle hundreds or thousands of simultaneous client connections
+- Neither blocking (misses other clients) nor busy-polling (wastes CPU) is acceptable
+- **I/O multiplexing**: register interest in a set of descriptors with the kernel; the kernel tells you which ones are ready
+- Your program then only calls `read()` / `write()` on descriptors that are confirmed ready — the calls will not block
+- This is the foundation of **event-driven** / **reactor-pattern** servers
+
+---
+
+### `select()` — The Classic Interface (Avoid in New Code)
+
+```c
+int select(int nfds, fd_set *readfds, fd_set *writefds,
+           fd_set *exceptfds, struct timeval *timeout);
+```
+
+- Monitors up to `nfds` file descriptors across three sets: readable, writable, exceptional conditions
+- `nfds` must be the highest file descriptor number + 1
+- Returns the total number of ready descriptors, `0` on timeout, `-1` on error
+- `fd_set` manipulation macros:
+
+  ```c
+  fd_set readfds;
+  FD_ZERO(&readfds);         // Clear the set
+  FD_SET(sockfd, &readfds);  // Add a descriptor
+  FD_CLR(sockfd, &readfds);  // Remove a descriptor
+  FD_ISSET(sockfd, &readfds); // Test if ready after select() returns
+  ```
+
+**Minimal example:**
+```c
+fd_set readfds;
+FD_ZERO(&readfds);
+FD_SET(listen_fd, &readfds);
+
+struct timeval tv = { .tv_sec = 5, .tv_usec = 0 };
+int ready = select(listen_fd + 1, &readfds, NULL, NULL, &tv);
+if (ready > 0 && FD_ISSET(listen_fd, &readfds)) {
+    // listen_fd is ready — accept() will not block
+}
+```
+
+**Why `select()` is not recommended:**
+- Hard limit of **`FD_SETSIZE`** descriptors (typically **1024**) — cannot be changed without recompiling
+- The fd_set must be **rebuilt before every call** (it is modified in place)
+- Requires an **O(n) scan** over all descriptor positions on return to find which ones fired
+- Poor scalability — performance degrades as descriptor count grows
+- **Only use `select()` when portability to very old or non-Linux systems is required**
+
+---
+
+### `poll()` — A Better `select()` (Portable Fallback)
+
+```c
+int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+```
+
+- Accepts an array of `pollfd` structures instead of bit sets:
+  ```c
+  struct pollfd {
+      int   fd;       // File descriptor to monitor
+      short events;   // Events to watch for (input)
+      short revents;  // Events that occurred (output, filled by kernel)
+  };
+  ```
+- Common event flags:
+  - `POLLIN` — data available to read
+  - `POLLOUT` — space available to write
+  - `POLLERR` — error condition
+  - `POLLHUP` — hangup (peer closed connection)
+  - `POLLRDHUP` — peer shut down writing half (Linux extension)
+- `timeout`: milliseconds to wait (`-1` = block forever, `0` = return immediately)
+- Returns number of `pollfd` entries with non-zero `revents`, `0` on timeout
+
+**Minimal example:**
+```c
+struct pollfd fds[2];
+fds[0].fd = listen_fd;
+fds[0].events = POLLIN;
+fds[1].fd = client_fd;
+fds[1].events = POLLIN;
+
+int ready = poll(fds, 2, 5000);  // 5 second timeout
+for (int i = 0; i < 2; i++) {
+    if (fds[i].revents & POLLIN) {
+        // fds[i].fd is ready to read
+    }
+}
+```
+
+**`poll()` vs `select()`:**
+- No hard FD limit (just allocate a larger array)
+- No need to rebuild sets — only `revents` is overwritten, `events` is preserved
+- Still **O(n)** — kernel and user both scan the entire array
+- POSIX standard, portable across Linux, macOS, BSDs
+- **Use `poll()` when you need portability across Unix-like systems; prefer `epoll()` on Linux**
+
+---
+
+### `epoll` — The Linux High-Performance Solution (Use This)
+
+`epoll` is a Linux-specific interface designed for high-concurrency servers. Unlike `select` and `poll`, it **does not require passing the entire monitored set on each call** — the kernel maintains the set internally. Event notification is **O(1)** regardless of how many descriptors are registered.
+
+#### Creating an epoll instance
+```c
+int epoll_create1(int flags);
+// flags: 0 or EPOLL_CLOEXEC (set close-on-exec)
+// Returns an epoll file descriptor (must be closed with close())
+```
+
+#### Adding, modifying, or removing descriptors
+```c
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
+```
+- `op`:
+  - `EPOLL_CTL_ADD` — start monitoring `fd`
+  - `EPOLL_CTL_MOD` — change events for `fd`
+  - `EPOLL_CTL_DEL` — stop monitoring `fd`
+- `epoll_event` structure:
+  ```c
+  struct epoll_event {
+      uint32_t events;   // Event mask (EPOLLIN, EPOLLOUT, ...)
+      epoll_data_t data; // User data (e.g., fd, pointer to context)
+  };
+  ```
+
+#### Waiting for events
+```c
+int epoll_wait(int epfd, struct epoll_event *events,
+               int maxevents, int timeout);
+```
+- Blocks until one or more monitored descriptors become ready
+- Fills `events` array with **only the ready descriptors** — no scanning needed
+- Returns the number of ready events; `0` on timeout; `-1` on error
+
+#### Typical epoll server loop
+```c
+int epfd = epoll_create1(EPOLL_CLOEXEC);
+
+// Add listen socket
+struct epoll_event ev;
+ev.events = EPOLLIN;
+ev.data.fd = listen_fd;
+epoll_ctl(epfd, EPOLL_CTL_ADD, listen_fd, &ev);
+
+struct epoll_event events[MAX_EVENTS];
+while (1) {
+    int n = epoll_wait(epfd, events, MAX_EVENTS, -1);
+    for (int i = 0; i < n; i++) {
+        if (events[i].data.fd == listen_fd) {
+            // New connection
+            int client_fd = accept4(listen_fd, NULL, NULL, SOCK_NONBLOCK);
+            ev.events = EPOLLIN | EPOLLET;
+            ev.data.fd = client_fd;
+            epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &ev);
+        } else {
+            // Data available on client_fd
+            handle_client(events[i].data.fd);
+        }
+    }
+}
+```
+
+#### Level-triggered vs. Edge-triggered
+
+- **Level-triggered (LT) — default:**
+  - `epoll_wait` keeps returning the event as long as the condition holds (e.g., data still in buffer)
+  - Easier to use correctly; you can read partial data and pick up next iteration
+  - Works with blocking and non-blocking descriptors
+
+- **Edge-triggered (ET) — `EPOLLET` flag:**
+  - Notified **only when the state changes** (e.g., new data arrives)
+  - You **must** drain the descriptor completely in one shot (loop until `EAGAIN`)
+  - Requires non-blocking descriptors (`O_NONBLOCK`)
+  - More efficient (fewer wakeups) but more complex to implement correctly
+  - **Use ET when you understand the draining requirement; LT is safer to start with**
+
+#### Why epoll is the right choice for Linux
+- O(1) event delivery — scales to millions of connections
+- No need to re-register descriptors on each call
+- Supports edge-triggered mode for maximum efficiency
+- Used internally by nginx, Redis, Node.js (libuv), and virtually every high-performance Linux server
+- **Default choice for any new Linux server**
+
+---
+
+### `io_uring` — The Modern Async Interface (Brief Introduction)
+
+Introduced in **Linux 5.1 (2019)**, `io_uring` takes a fundamentally different approach:
+
+- Uses two **shared ring buffers** between kernel and user space (submission queue + completion queue)
+- Operations are submitted in bulk — **dramatically fewer syscalls** than `epoll`
+- Supports network I/O, file I/O, and arbitrary I/O operations uniformly
+- Supports true **zero-copy** and **kernel-side polling** modes
+- Highest possible throughput for I/O-bound applications
+
+```c
+// Simplified sketch — real usage requires liburing or manual ring setup
+struct io_uring ring;
+io_uring_queue_init(QUEUE_DEPTH, &ring, 0);
+
+struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
+io_uring_prep_recv(sqe, client_fd, buf, sizeof(buf), 0);
+io_uring_submit(&ring);
+
+struct io_uring_cqe *cqe;
+io_uring_wait_cqe(&ring, &cqe);  // Block until completion
+// cqe->res contains bytes read or negative error code
+io_uring_cqe_seen(&ring, cqe);
+```
+
+**Practical notes:**
+- Complex API — use **[liburing](https://github.com/axboe/liburing)** to simplify usage
+- Still actively evolving — new features added with each kernel version
+- Requires Linux ≥ 5.1 (full feature set needs ≥ 5.10–6.x)
+- Not yet the default choice; consider it for **specialized high-throughput applications** where epoll is a bottleneck
+- Projects like **io_uring-based servers** (e.g., newer versions of nginx, Tokio in Rust) are beginning to adopt it
+
+---
+
+### Interface Comparison
+
+| | `select` | `poll` | `epoll` | `io_uring` |
+|---|---|---|---|---|
+| **FD limit** | 1024 (FD_SETSIZE) | Unlimited | Unlimited | Unlimited |
+| **Scalability** | O(n) | O(n) | O(1) | O(1) |
+| **Portability** | POSIX | POSIX | Linux only | Linux only |
+| **API complexity** | Low | Low | Moderate | High |
+| **Triggered modes** | Level | Level | Level + Edge | Async completion |
+| **Kernel set tracking** | No | No | Yes | Yes |
+| **Recommendation** | **Avoid** | Portable fallback | **Use this** | Specialized/future |
+
+---
+
+### The Event-Driven Server Pattern (Reactor)
+
+- A **single event loop** calls `epoll_wait`, dispatches to handlers based on ready FDs
+- All descriptors set to non-blocking — no call ever blocks
+- Eliminates thread-per-connection overhead (no context switching, no stack memory per connection)
+- **One thread can serve tens of thousands of connections**
+- Used by: nginx, Redis, HAProxy, Node.js (via libuv), Memcached
+
+```
+[epoll_wait] → ready FDs → dispatch handlers → [back to epoll_wait]
+         ↑                                              |
+         └──────────────── event loop ─────────────────┘
+```
+
+### Common Pitfalls
+
+- **Forgetting to drain on edge-triggered epoll** — missed events, stalled connection
+- **Calling blocking operations inside the event loop** — blocks all connections
+- **Not handling `EAGAIN` / `EWOULDBLOCK`** — crashing or incorrect logic on non-blocking FDs
+- **Rebuilding fd_set every iteration with `select()`** — common bug causing incorrect behavior
+- **Using `select()` without checking the FD_SETSIZE limit** — silent corruption for FD > 1023
+- **Leaking epoll descriptors** — `epoll_create1()` returns an FD that must be `close()`d
+- **Not removing closed FDs from epoll** — stale events, confusion (though kernel auto-removes on `close()`)
+- **Using `EPOLLET` with blocking sockets** — undefined, must always pair with `O_NONBLOCK`
+
+---
+
+## Practice / Lab
+
+### Non-Blocking Read
+- Open a regular file or pipe with `O_NONBLOCK`.
+- Observe `EAGAIN` behavior when no data is available.
+- Compare behavior with blocking mode.
+
+### Echo Server with `poll()`
+- Implement a TCP echo server using `poll()` to monitor the listening socket and all connected client sockets simultaneously.
+- Handle new connections, incoming data, and disconnections in a single loop.
+
+### Echo Server with `epoll()`
+- Rewrite the `poll()`-based server using `epoll()` with level-triggered mode.
+- Add all connected client sockets to the epoll instance.
+- Benchmark both versions with many simultaneous clients.
+
+### Edge-Triggered epoll
+- Modify the epoll server to use `EPOLLET`.
+- Implement the draining loop (read until `EAGAIN`).
+- Verify correctness: no data should be lost or stuck between iterations.
+
+### Timeout Handling
+- Use the `timeout` parameter of `poll()` or `epoll_wait()` to implement periodic tasks (e.g., connection keep-alive checks) alongside I/O event handling.
+
+---
+
+## Homework
+- [NET-2: Multiplexed Sqrt Server](/system-programming/tasks/networking/multiplexed-sqrt-server/)
+
+---
+
+### Samples
+- [Using select](/system-programming/samples/select-fds/)
+- [Using poll](/system-programming/samples/poll-fds/)
+- [Using epoll](/system-programming/samples/epoll-server/)
+
+---
+
+## References & Resources
+
+**Required**
+- [Beej's Guide to Network Programming — select()](https://beej.us/guide/bgnet/html/#select) — approachable introduction
+- Kerrisk, *The Linux Programming Interface*
+  - Chapter 63: Alternative I/O Models (select, poll, epoll, signal-driven I/O)
+- Stevens, *Unix Network Programming, Volume 1* — Chapter 6: I/O Multiplexing
+- [epoll(7) — Linux man page](https://man7.org/linux/man-pages/man7/epoll.7.html) — authoritative reference
+- [The C10K Problem](http://www.kegel.com/c10k.html) — historical context for why epoll was created
+
+**Recommended**
+- [Linux manual page - select(2)](https://man7.org/linux/man-pages/man2/select.2.html)
+- [Linux manual page - poll(2)](https://man7.org/linux/man-pages/man2/poll.2.html)
+- [Linux manual page - epoll_create1(2)](https://man7.org/linux/man-pages/man2/epoll_create1.2.html)
+- [Linux manual page - epoll_ctl(2)](https://man7.org/linux/man-pages/man2/epoll_ctl.2.html)
+- [Linux manual page - epoll_wait(2)](https://man7.org/linux/man-pages/man2/epoll_wait.2.html)
+- [Linux manual page - fcntl(2)](https://man7.org/linux/man-pages/man2/fcntl.2.html) — setting `O_NONBLOCK`
+- [Illustrative epoll tutorial (suchprogramming.com)](https://suchprogramming.com/epoll-in-3-easy-steps/)
+- [io_uring and liburing (Kernel documentation)](https://kernel.dk/io_uring.pdf) — Jens Axboe's overview paper
+- [liburing GitHub repository](https://github.com/axboe/liburing) — helper library for io_uring
+- [Efficient IO with io_uring (lwn.net)](https://lwn.net/Articles/776703/)
+
+---
+
+## Quiz (Self-check)
+
+1. What is the difference between blocking and non-blocking I/O?
+2. What does `EAGAIN` mean when returned from a `read()` on a non-blocking descriptor?
+3. How do you set a socket to non-blocking mode using `fcntl()`?
+4. Why is busy-polling on non-blocking descriptors a bad idea?
+5. What is the fundamental problem that I/O multiplexing solves?
+6. What is the FD limit of `select()` and why is it a problem?
+7. Why must the `fd_set` be rebuilt before every `select()` call?
+8. How does `poll()` improve on `select()` in terms of descriptor limits?
+9. What does `POLLIN` indicate, and how do you check it after `poll()` returns?
+10. Why does `epoll` scale better than `select` or `poll` as the number of connections grows?
+11. What is the difference between `epoll_ctl()` and `epoll_wait()`?
+12. Explain the difference between level-triggered and edge-triggered epoll.
+13. Why must edge-triggered epoll be used with non-blocking file descriptors?
+14. What is the "draining" requirement in edge-triggered mode?
+15. What does the `data` field of `struct epoll_event` allow you to store, and why is it useful?
+16. What is `io_uring` and how does it differ from `epoll`?
+17. Which interface would you choose for a new high-performance Linux server, and why?
+18. What is the Reactor pattern, and how does it relate to `epoll`?
+
+---
+
+## Suggested Tools
+- `strace` — observe `epoll_create`, `epoll_ctl`, `epoll_wait`, `poll`, `select` syscalls
+- `ss -s` — summary of socket statistics
+- `netstat -an` — inspect connection states
+- `wrk` / `ab` (Apache Bench) — HTTP load testing to stress-test servers
+- `iperf3` — raw TCP throughput testing
+- `perf` — profile event loop performance

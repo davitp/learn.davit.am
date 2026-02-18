@@ -1,0 +1,91 @@
+---
+description: >
+    Build a high-performance multiplexed TCP server in C/C++ on Linux using epoll. The server accepts 4-byte signed integers from multiple simultaneous clients and responds with the square root of their absolute value, demonstrating non-blocking I/O and event-driven design.
+---
+
+# NET-2: Multiplexed Sqrt Server
+
+### Requirements
+
+- Write a C/C++ **TCP server** program that:
+  - Creates a TCP socket and binds it to a specified port (default: **8080**)
+  - Listens for incoming client connections
+  - Uses **`epoll`** to handle **multiple simultaneous clients** in a single thread — no `fork()`, no threads
+  - All sockets (listening and client) must be set to **non-blocking** mode (`O_NONBLOCK`)
+  - For each connected client:
+    - Reads exactly **4 bytes** representing a signed 32-bit integer (`int32_t`) in **network byte order**
+    - Computes `f(x) = sqrt(abs(x))` and sends the result back as an **8-byte IEEE 754 double** in **network byte order**
+    - Handles the case where the client sends multiple requests over the same connection
+    - Detects client disconnection and removes the descriptor from the epoll instance
+  - Prints a log line when a client connects or disconnects, and for each request processed
+  - Runs indefinitely until terminated with **Ctrl+C**
+
+- Write a C/C++ **TCP client** program that:
+  - Connects to the server at a specified IP address and port
+  - Reads an integer from `stdin`, sends it to the server as a 4-byte network-order `int32_t`
+  - Receives the 8-byte `double` response and prints the result
+  - Repeats until `EOF` (Ctrl+D) or the user types `exit`
+
+- Both programs must use the **BSD socket API** and proper byte order conversion
+- Handle all system call errors — check every return value
+
+### Expected result
+
+The resulting applications should be able to build and execute from command line as follows:
+
+```sh
+make
+./sqrt-server 8080
+```
+
+In separate terminals, run multiple clients simultaneously:
+
+```sh
+./sqrt-client 127.0.0.1 8080
+```
+
+**Server terminal output:**
+```
+[Server] Listening on port 8080 (epoll, non-blocking)
+[Server] Client connected: 127.0.0.1:54321 (fd=5)
+[Server] Client connected: 127.0.0.1:54322 (fd=6)
+[Server] fd=5 recv: -16 -> sqrt(abs(-16)) = 4.000000
+[Server] fd=6 recv: 225  -> sqrt(abs(225))  = 15.000000
+[Server] fd=5 recv: 0    -> sqrt(abs(0))    = 0.000000
+[Server] Client disconnected: fd=5
+```
+
+**Client terminal output:**
+```
+[Client] Connected to 127.0.0.1:8080
+> -16
+[Server]: sqrt(abs(-16)) = 4.000000
+> 225
+[Server]: sqrt(abs(225)) = 15.000000
+> exit
+[Client] Disconnecting...
+```
+
+### Notes
+
+- Use `epoll_create1(EPOLL_CLOEXEC)` to create the epoll instance
+- Use level-triggered mode (default) — no need for edge-triggered for this task
+- `double` has no standard network byte order representation — use a byte-swap approach or send as raw bytes with a defined endianness (document your choice)
+- `sqrt` and `fabs` are in `<math.h>` / `<cmath>`; link with `-lm` if needed
+
+### Bonus (Optional)
+
+- Switch to **edge-triggered mode** (`EPOLLET`) and implement the full draining loop for reads
+- Support an **arbitrary number of requests per connection** with a per-client receive buffer to handle partial reads correctly
+- Add a **timeout**: disconnect clients that send no request within 30 seconds (use `epoll_wait` timeout or `timerfd`)
+- Report the **number of active connections** when receiving `SIGUSR1`
+
+### Deliverables
+
+The final solution should contain a **Makefile** for building both programs. The Makefile should contain targets:
+- `all` — build both server and client
+- `sqrt-server` — build only the server
+- `sqrt-client` — build only the client
+- `clean` — remove compiled binaries
+
+It's recommended to have the compiler and compiler flags declared as Makefile variables. Alternatively, **cmake** could also be used instead of make.
