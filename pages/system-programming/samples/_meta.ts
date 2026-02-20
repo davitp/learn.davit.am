@@ -14,5 +14,5 @@ export default {
   'tcp-client': 'TCP client',
   'select-fds': 'Using select',
   'poll-fds': 'Using poll',
-  'epoll-server': 'Using epoll'
+  'epoll-fds': 'Using epoll'
 }

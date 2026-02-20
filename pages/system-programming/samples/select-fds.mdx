@@ -1,10 +1,11 @@
 ---
-description: The sample demonstrates how to use select() to monitor multiple file descriptors simultaneously — watching both stdin and a TCP listening socket without blocking on either.
+description: The sample demonstrates how to use **select()** to monitor one or multiple file descriptors at the same time. 
 ---
 
 # Monitoring file descriptors with select
 
-The sample demonstrates how to use **select()** to monitor multiple file descriptors at the same time. The program watches two sources simultaneously: **stdin** (keyboard input) and a **TCP listening socket** (incoming connections). It reacts to whichever becomes ready first, and times out after 5 seconds of inactivity.
+The sample demonstrates how to use **select()** to monitor one or multiple file descriptors at the same time. 
+The program watches the **stdin** (keyboard input). It reacts to whenever it becomes ready first, and times out after N seconds of inactivity.
 
 Note that the `fd_set` must be **rebuilt before every call** to `select()` because the kernel overwrites it to indicate which descriptors are ready.
 
@@ -13,139 +14,88 @@ Note that the `fd_set` must be **rebuilt before every call** to `select()` becau
 #include <cstring>
 #include <cerrno>
 #include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
 #include <sys/select.h>
-
-#define PORT        9001
-#define BACKLOG     5
+ 
 #define BUFFER_SIZE 256
-#define TIMEOUT_SEC 5
-
+ 
+/**
+ * The example program to read from stdin (0) descriptor in a non-blocking mode using select()
+ */
 int main() {
+  
+	// prepare a buffer for reading; +1 to always have room for the null terminator
+	char buffer[BUFFER_SIZE + 1];
 
-    // create the TCP listening socket
-    int serverFd = socket(AF_INET, SOCK_STREAM, 0);
-    if (serverFd == -1) {
-        std::cerr << "Socket failed: " << strerror(errno) << std::endl;
-        return errno;
-    }
+	// a set of file descriptors to monitor for read operations
+	fd_set readFds;
+ 
+	// the highest file descriptor we will monitor is stdin, so max fd = stdin + 1
+	int maxFd = STDIN_FILENO + 1;
 
-    int opt = 1;
-    int reuseResult = setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-    if (reuseResult == -1) {
-        std::cerr << "Setsockopt failed: " << strerror(errno) << std::endl;
-        close(serverFd);
-        return errno;
-    }
-
-    struct sockaddr_in serverAddr;
-    memset(&serverAddr, 0, sizeof(serverAddr));
-    serverAddr.sin_family      = AF_INET;
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
-    serverAddr.sin_port        = htons(PORT);
-
-    int bindResult = bind(serverFd, (struct sockaddr*) &serverAddr, sizeof(serverAddr));
-    if (bindResult == -1) {
-        std::cerr << "Bind failed: " << strerror(errno) << std::endl;
-        close(serverFd);
-        return errno;
-    }
-
-    int listenResult = listen(serverFd, BACKLOG);
-    if (listenResult == -1) {
-        std::cerr << "Listen failed: " << strerror(errno) << std::endl;
-        close(serverFd);
-        return errno;
-    }
-
-    std::cout << "[select] Watching stdin and TCP port " << PORT << std::endl;
-    std::cout << "[select] Type something and press Enter, or connect a client." << std::endl;
-
+	// we will read in an infinite loop
     while (true) {
-
-        // the fd_set must be rebuilt on every iteration because select() modifies
-        // it in place — after the call it only contains the ready descriptors
-        fd_set readFds;
+ 
+		// reset file descriptor set as they are modified after every select()
         FD_ZERO(&readFds);
 
-        // watch stdin (fd 0) for keyboard input
-        FD_SET(STDIN_FILENO, &readFds);
+		// mark the stdin file (0) for monitoring 
+		FD_SET(STDIN_FILENO, &readFds);
 
-        // watch the server socket for incoming client connections
-        FD_SET(serverFd, &readFds);
-
-        // nfds must be the highest descriptor number + 1
-        int nfds = serverFd + 1;
-
-        // set a timeout so the loop does not block forever
-        struct timeval timeout;
-        timeout.tv_sec  = TIMEOUT_SEC;
-        timeout.tv_usec = 0;
-
+		// initialize a timeout for 3 seconds
+		struct timeval timeout;
+		timeout.tv_sec = 3;
+		timeout.tv_usec = 0;
+ 
         // block until at least one descriptor is ready, or the timeout expires
-        int ready = select(nfds, &readFds, NULL, NULL, &timeout);
-        if (ready == -1) {
+		// in this example, we monitor only read set (with one element) and given timeout
+        int totalReady = select(maxFd, &readFds, NULL, NULL, &timeout);
+
+		// an error occurred, so it needs to be handled
+        if (totalReady == -1) {
             std::cerr << "Select failed: " << strerror(errno) << std::endl;
             break;
         }
-
-        if (ready == 0) {
-            // neither descriptor became ready before the timeout
-            std::cout << "[select] Timeout — nothing happened for " << TIMEOUT_SEC << " seconds" << std::endl;
+ 
+		// neither descriptor became ready before the timeout
+        if (totalReady == 0) {
+            std::cout << "No file became available for reading/writing within the given timeout" << std::endl;
             continue;
         }
 
-        // check if stdin has data available
-        if (FD_ISSET(STDIN_FILENO, &readFds)) {
-            char buffer[BUFFER_SIZE];
-            memset(buffer, 0, sizeof(buffer));
-            ssize_t n = read(STDIN_FILENO, buffer, sizeof(buffer) - 1);
-            if (n <= 0) {
-                std::cout << "[select] stdin closed, exiting." << std::endl;
-                break;
-            }
-            std::cout << "[select] stdin input: " << buffer;
-        }
+		// in general we check all the descriptors provided to find which ones are ready
+		for(int i = 0; i < maxFd; ++i){
 
-        // check if the server socket has a pending connection
-        if (FD_ISSET(serverFd, &readFds)) {
-            struct sockaddr_in clientAddr;
-            socklen_t clientLen = sizeof(clientAddr);
-            int clientFd = accept(serverFd, (struct sockaddr*) &clientAddr, &clientLen);
-            if (clientFd == -1) {
-                std::cerr << "Accept failed: " << strerror(errno) << std::endl;
-                continue;
-            }
+			// checking if the current file is marked as ready to read
+			if(FD_ISSET(i, &readFds)){
 
-            char clientIp[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, &clientAddr.sin_addr, clientIp, sizeof(clientIp));
-            std::cout << "[select] New connection from "
-                      << clientIp << ":" << ntohs(clientAddr.sin_port) << std::endl;
+				// we can safely read without blocking
+				int totalBytes = read(i, buffer, BUFFER_SIZE);
 
-            // close the client immediately — this sample only demonstrates readiness detection
-            close(clientFd);
-        }
+				// null-terminate at the last read byte and print
+				buffer[totalBytes] = '\0';
+				std::cout << "Read from the file: " << buffer << std::endl;
+			}
+		}
     }
-
-    close(serverFd);
-
+ 
     return 0;
 }
 ```
 
 The file can be compiled and executed as follows:
 ```sh
-g++ select-fds.cpp -o select-fds
-./select-fds
+g++ select.cpp -o select
+./select
 ```
 
-With no activity the program prints a timeout message every 5 seconds. Typing into the terminal or connecting with `nc` triggers the corresponding handler:
+With no activity the program prints a timeout message every N seconds. Typing into the terminal triggers the corresponding handler:
 ```
-[select] Watching stdin and TCP port 9001
-[select] Type something and press Enter, or connect a client.
-[select] Timeout — nothing happened for 5 seconds
-[select] stdin input: hello
-[select] New connection from 127.0.0.1:54210
-[select] Timeout — nothing happened for 5 seconds
+No file became available for reading/writing within the given timeout
+No file became available for reading/writing within the given timeout
+hello
+Read from the file: hello
+
+No file became available for reading/writing within the given timeout
+something else
+Read from the file: something else
 ```

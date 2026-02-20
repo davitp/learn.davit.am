@@ -1,0 +1,154 @@
+---
+description: The sample demonstrates how to use **epoll** to monitor multiple file descriptors at the same time — watching both stdin and a named pipe (FIFO) for incoming data.
+---
+
+# Monitoring file descriptors with epoll
+
+The sample demonstrates how to use **epoll** to monitor multiple file descriptors at the same time.
+The program creates a FIFO with `mkfifo()` and watches both **stdin** (keyboard input) and the **FIFO** for incoming data, printing from whichever becomes ready first.
+
+Unlike `poll()`, `epoll_wait()` returns **only the descriptors that are ready** — there is no need to iterate over the full set and check each entry. The registered set is maintained by the kernel and does not need to be rebuilt on every call.
+
+```c
+#include <iostream>
+#include <cstring>
+#include <cerrno>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/epoll.h>
+
+#define BUFFER_SIZE 256
+#define TIMEOUT_MS  3000
+#define FIFO_PATH   "fifo-test"
+#define MAX_EVENTS  2
+
+/**
+ * The example program to monitor stdin and a FIFO using epoll
+ */
+int main() {
+
+	// create the named pipe in the current directory with rw-r--r-- permissions;
+	// if it already exists that is fine — just continue
+	int mkfifoResult = mkfifo(FIFO_PATH, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if (mkfifoResult == -1 && errno != EEXIST) {
+		std::cerr << "Mkfifo failed: " << strerror(errno) << std::endl;
+		return errno;
+	}
+
+	// open the FIFO in read-write mode so we hold the write-end open ourselves;
+	// opening O_RDONLY would cause epoll to immediately report EPOLLHUP whenever
+	// no external writer has the FIFO open — O_RDWR avoids this by keeping
+	// the write-end open ourselves; O_NONBLOCK prevents open() from blocking
+	int fifoFd = open(FIFO_PATH, O_RDWR | O_NONBLOCK);
+	if (fifoFd == -1) {
+		std::cerr << "Open failed: " << strerror(errno) << std::endl;
+		return errno;
+	}
+
+	// create the epoll instance; EPOLL_CLOEXEC closes it automatically on exec()
+	int epFd = epoll_create1(EPOLL_CLOEXEC);
+	if (epFd == -1) {
+		std::cerr << "Epoll_create1 failed: " << strerror(errno) << std::endl;
+		close(fifoFd);
+		return errno;
+	}
+
+	// register stdin with the epoll instance — watch for data available to read
+	struct epoll_event ev;
+	ev.events  = EPOLLIN;
+	ev.data.fd = STDIN_FILENO;
+	int stdinCtlResult = epoll_ctl(epFd, EPOLL_CTL_ADD, STDIN_FILENO, &ev);
+	if (stdinCtlResult == -1) {
+		std::cerr << "Epoll_ctl(ADD stdin) failed: " << strerror(errno) << std::endl;
+		close(fifoFd);
+		close(epFd);
+		return errno;
+	}
+
+	// register the FIFO with the epoll instance — watch for data available to read
+	ev.events  = EPOLLIN;
+	ev.data.fd = fifoFd;
+	int fifoCtlResult = epoll_ctl(epFd, EPOLL_CTL_ADD, fifoFd, &ev);
+	if (fifoCtlResult == -1) {
+		std::cerr << "Epoll_ctl(ADD fifoFd) failed: " << strerror(errno) << std::endl;
+		close(fifoFd);
+		close(epFd);
+		return errno;
+	}
+
+	std::cout << "Monitoring stdin and " << FIFO_PATH << std::endl;
+	std::cout << "In another terminal run: echo \"hello\" >> " << FIFO_PATH << std::endl;
+
+	// prepare a buffer for reading; +1 to always have room for the null terminator
+	char buffer[BUFFER_SIZE + 1];
+
+	// epoll_wait fills this array with only the descriptors that are ready
+	struct epoll_event events[MAX_EVENTS];
+
+	// we will read in an infinite loop
+	while (true) {
+
+		// block until at least one monitored descriptor has an event, or the timeout expires;
+		// unlike poll(), only the ready descriptors are placed in the events array
+		int nReady = epoll_wait(epFd, events, MAX_EVENTS, TIMEOUT_MS);
+
+		// an error occurred, so it needs to be handled
+		if (nReady == -1) {
+			std::cerr << "Epoll_wait failed: " << strerror(errno) << std::endl;
+			break;
+		}
+
+		// neither descriptor became ready before the timeout
+		if (nReady == 0) {
+			std::cout << "No file became available for reading/writing within the given timeout" << std::endl;
+			continue;
+		}
+
+		// iterate only over the ready descriptors — no need to check the rest
+		for (int i = 0; i < nReady; ++i) {
+			int fd = events[i].data.fd;
+
+			// check that this specific event indicates data is available to read
+			if (!(events[i].events & EPOLLIN)) {
+				continue;
+			}
+
+			// we can safely read without blocking
+			int totalBytes = read(fd, buffer, BUFFER_SIZE);
+
+			// null-terminate at the last read byte and print
+			buffer[totalBytes] = '\0';
+			std::cout << "Read from fd=" << fd << ": " << buffer << std::endl;
+		}
+	}
+
+	close(epFd);
+	close(fifoFd);
+	unlink(FIFO_PATH);
+
+	return 0;
+}
+```
+
+The file can be compiled and executed as follows:
+```sh
+g++ epoll.cpp -o epoll
+./epoll
+```
+
+In a separate terminal, append data to the FIFO to trigger the handler:
+```sh
+echo "hello from fifo" >> fifo-test
+```
+
+The output should look like:
+```
+Monitoring stdin and fifo-test
+In another terminal run: echo "hello" >> fifo-test
+No file became available for reading/writing within the given timeout
+Read from fd=0: hi there
+No file became available for reading/writing within the given timeout
+Read from fd=3: hello from fifo
+No file became available for reading/writing within the given timeout
+```

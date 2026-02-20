@@ -1,184 +1,130 @@
 ---
-description: The sample demonstrates how to use poll() to monitor a listening socket and multiple connected clients simultaneously, reading and printing messages from whichever client is ready.
+description: The sample demonstrates how to use **poll()** to monitor multiple file descriptors at the same time — watching both stdin and a named pipe (FIFO) for incoming data.
 ---
 
 # Monitoring file descriptors with poll
 
-The sample demonstrates how to use **poll()** to monitor multiple file descriptors without the FD limit of `select()`. The server keeps a `pollfd` array that starts with the listening socket and grows as clients connect. Whenever a client sends a message the server reads and prints it; disconnections are detected and the slot is freed.
+The sample demonstrates how to use **poll()** to monitor multiple file descriptors at the same time.
+The program creates a FIFO with `mkfifo()` and watches both **stdin** (keyboard input) and the **FIFO** for incoming data, printing from whichever becomes ready first.
 
-Unlike `select()`, the `pollfd` array does not need to be rebuilt on every call — only `revents` is overwritten by the kernel.
+Unlike `select()`, the `pollfd` array does **not** need to be rebuilt before every call — only the `revents` field is overwritten by the kernel after each call.
 
 ```c
 #include <iostream>
 #include <cstring>
 #include <cerrno>
 #include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <poll.h>
 
-#define PORT        9002
-#define BACKLOG     5
-#define MAX_CLIENTS 16
 #define BUFFER_SIZE 256
+#define TIMEOUT_MS 3000
+#define FIFO_PATH "fifo-test"
 
+/**
+ * The example program to monitor stdin and a FIFO using poll()
+ */
 int main() {
 
-    // create the TCP listening socket
-    int serverFd = socket(AF_INET, SOCK_STREAM, 0);
-    if (serverFd == -1) {
-        std::cerr << "Socket failed: " << strerror(errno) << std::endl;
-        return errno;
-    }
+	// create the named pipe in the current directory with rw-r--r-- permissions;
+	// if it already exists that is fine — just continue
+	int mkfifoResult = mkfifo(FIFO_PATH, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if (mkfifoResult == -1 && errno != EEXIST) {
+		std::cerr << "Mkfifo failed: " << strerror(errno) << std::endl;
+		return errno;
+	}
 
-    int opt = 1;
-    int reuseResult = setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-    if (reuseResult == -1) {
-        std::cerr << "Setsockopt failed: " << strerror(errno) << std::endl;
-        close(serverFd);
-        return errno;
-    }
+	// open the FIFO in read-write mode so we hold the write-end open ourselves;
+	// opening O_RDONLY would cause poll() to immediately report POLLHUP whenever
+	// no external writer has the FIFO open — O_RDWR avoids this by keeping
+	// the write-end open ourselves; O_NONBLOCK prevents open() from blocking
+	int fifoFd = open(FIFO_PATH, O_RDWR | O_NONBLOCK);
+	if (fifoFd == -1) {
+		std::cerr << "Open failed: " << strerror(errno) << std::endl;
+		return errno;
+	}
 
-    struct sockaddr_in serverAddr;
-    memset(&serverAddr, 0, sizeof(serverAddr));
-    serverAddr.sin_family      = AF_INET;
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
-    serverAddr.sin_port        = htons(PORT);
+	// prepare a buffer for reading; +1 to always have room for the null terminator
+	char buffer[BUFFER_SIZE + 1];
 
-    int bindResult = bind(serverFd, (struct sockaddr*) &serverAddr, sizeof(serverAddr));
-    if (bindResult == -1) {
-        std::cerr << "Bind failed: " << strerror(errno) << std::endl;
-        close(serverFd);
-        return errno;
-    }
+	// the number of file descriptors we want to monitor
+	const int fdsCount = 2;
 
-    int listenResult = listen(serverFd, BACKLOG);
-    if (listenResult == -1) {
-        std::cerr << "Listen failed: " << strerror(errno) << std::endl;
-        close(serverFd);
-        return errno;
-    }
+	// describe the file descriptors we want to monitor
+	struct pollfd fds[fdsCount];
 
-    std::cout << "[poll] Server listening on port " << PORT << std::endl;
+	// slot 0: watch stdin for keyboard input
+	fds[0].fd     = STDIN_FILENO;
+	fds[0].events = POLLIN;
 
-    // the poll array: slot 0 is always the listening socket;
-    // subsequent slots hold connected client descriptors
-    struct pollfd fds[MAX_CLIENTS + 1];
-    memset(fds, 0, sizeof(fds));
+	// slot 1: watch the FIFO for data written by an external process
+	fds[1].fd     = fifoFd;
+	fds[1].events = POLLIN;
 
-    // register the listening socket as the first entry — watch for new connections
-    fds[0].fd     = serverFd;
-    fds[0].events = POLLIN;
+	std::cout << "Monitoring stdin and " << FIFO_PATH << std::endl;
+	std::cout << "In another terminal run: echo \"hello\" >> " << FIFO_PATH << std::endl;
 
-    // track how many entries in the array are currently active
-    int nfds = 1;
+	// we will read in an infinite loop
+	while (true) {
 
-    while (true) {
+		// block until at least one descriptor is ready, or the timeout expires;
+		// unlike select(), the fds array does not need to be reset before each call
+		int totalReady = poll(fds, fdsCount, TIMEOUT_MS);
 
-        // block until at least one descriptor in the array is ready; -1 means no timeout
-        int ready = poll(fds, nfds, -1);
-        if (ready == -1) {
-            std::cerr << "Poll failed: " << strerror(errno) << std::endl;
-            break;
-        }
+		// an error occurred, so it needs to be handled
+		if (totalReady == -1) {
+			std::cerr << "Poll failed: " << strerror(errno) << std::endl;
+			break;
+		}
 
-        // walk through all active entries to find which ones have events
-        for (int i = 0; i < nfds; ++i) {
+		// neither descriptor became ready before the timeout
+		if (totalReady == 0) {
+			std::cout << "No file became available for reading/writing within the given timeout" << std::endl;
+			continue;
+		}
 
-            // skip entries where the kernel reported no events
-            if (fds[i].revents == 0) {
-                continue;
-            }
+		// in general we check all the descriptors provided to find which ones are ready
+		for (int i = 0; i < fdsCount; ++i) {
 
-            if (i == 0) {
-                // slot 0 is the listening socket — a new client is ready to be accepted
-                struct sockaddr_in clientAddr;
-                socklen_t clientLen = sizeof(clientAddr);
-                int clientFd = accept(serverFd, (struct sockaddr*) &clientAddr, &clientLen);
-                if (clientFd == -1) {
-                    std::cerr << "Accept failed: " << strerror(errno) << std::endl;
-                    continue;
-                }
+			// checking if the current file is marked as ready to read
+			if (fds[i].revents & POLLIN) {
 
-                char clientIp[INET_ADDRSTRLEN];
-                inet_ntop(AF_INET, &clientAddr.sin_addr, clientIp, sizeof(clientIp));
-                std::cout << "[poll] Client connected: " << clientIp
-                          << " (fd=" << clientFd << ")" << std::endl;
+				// we can safely read without blocking
+				int totalBytes = read(fds[i].fd, buffer, BUFFER_SIZE);
 
-                if (nfds == MAX_CLIENTS + 1) {
-                    // the array is full; reject the new client
-                    std::cerr << "Too many clients, rejecting fd=" << clientFd << std::endl;
-                    close(clientFd);
-                    continue;
-                }
+				// null-terminate at the last read byte and print
+				buffer[totalBytes] = '\0';
+				std::cout << "Read from fd=" << fds[i].fd << ": " << buffer << std::endl;
+			}
+		}
+	}
 
-                // append the new client to the next free slot in the array
-                fds[nfds].fd     = clientFd;
-                fds[nfds].events = POLLIN;
-                ++nfds;
+	close(fifoFd);
+	unlink(FIFO_PATH);
 
-            } else {
-                // one of the connected clients has an event
-                int clientFd = fds[i].fd;
-
-                if (fds[i].revents & POLLHUP) {
-                    // the client closed the connection
-                    std::cout << "[poll] Client disconnected: fd=" << clientFd << std::endl;
-                    close(clientFd);
-
-                    // compact the array: move the last entry into the vacated slot
-                    fds[i] = fds[nfds - 1];
-                    --nfds;
-                    --i;  // recheck this slot — it now holds a different descriptor
-                    continue;
-                }
-
-                if (fds[i].revents & POLLIN) {
-                    // the client has data available to read
-                    char buffer[BUFFER_SIZE];
-                    memset(buffer, 0, sizeof(buffer));
-                    ssize_t bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
-
-                    if (bytesRead <= 0) {
-                        // 0 = clean close, -1 = error; either way remove the client
-                        std::cout << "[poll] Client fd=" << clientFd << " disconnected." << std::endl;
-                        close(clientFd);
-                        fds[i] = fds[nfds - 1];
-                        --nfds;
-                        --i;
-                    } else {
-                        std::cout << "[poll] fd=" << clientFd << " says: " << buffer << std::endl;
-                    }
-                }
-            }
-        }
-    }
-
-    close(serverFd);
-
-    return 0;
+	return 0;
 }
 ```
 
 The file can be compiled and executed as follows:
 ```sh
-g++ poll-fds.cpp -o poll-fds
-./poll-fds
+g++ poll.cpp -o poll
+./poll
 ```
 
-Connect several clients simultaneously using `nc` and send messages:
+In a separate terminal, append data to the FIFO to trigger the handler:
 ```sh
-echo "Hello from client A" | nc 127.0.0.1 9002
-echo "Hello from client B" | nc 127.0.0.1 9002
+echo "hello from fifo" >> fifo-test
 ```
 
-The server output should look like:
+The output should look like:
 ```
-[poll] Server listening on port 9002
-[poll] Client connected: 127.0.0.1 (fd=5)
-[poll] Client connected: 127.0.0.1 (fd=6)
-[poll] fd=5 says: Hello from client A
-[poll] Client fd=5 disconnected.
-[poll] fd=6 says: Hello from client B
-[poll] Client fd=6 disconnected.
+Monitoring stdin and fifo-test
+In another terminal run: echo "hello" >> fifo-test
+No file became available for reading/writing within the given timeout
+Read from fd=0: hi there
+No file became available for reading/writing within the given timeout
+Read from fd=3: hello from fifo
+No file became available for reading/writing within the given timeout
 ```
