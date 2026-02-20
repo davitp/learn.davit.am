@@ -95,11 +95,11 @@ export const pageMap = [{
         "sidebarTitle": "Dining Philosophers"
       }
     }, {
-      name: "epoll-server",
-      route: "/system-programming/samples/epoll-server",
+      name: "epoll-fds",
+      route: "/system-programming/samples/epoll-fds",
       frontMatter: {
-        "description": "The sample demonstrates how to build a non-blocking TCP server using epoll — creating an epoll instance, registering file descriptors, and dispatching events in a single-threaded loop.",
-        "sidebarTitle": "Epoll Server"
+        "description": "The sample demonstrates how to use **epoll** to monitor multiple file descriptors at the same time — watching both stdin and a named pipe (FIFO) for incoming data.",
+        "sidebarTitle": "Epoll Fds"
       }
     }, {
       name: "make-hole",
@@ -126,7 +126,7 @@ export const pageMap = [{
       name: "poll-fds",
       route: "/system-programming/samples/poll-fds",
       frontMatter: {
-        "description": "The sample demonstrates how to use poll() to monitor a listening socket and multiple connected clients simultaneously, reading and printing messages from whichever client is ready.",
+        "description": "The sample demonstrates how to use **poll()** to monitor multiple file descriptors at the same time — watching both stdin and a named pipe (FIFO) for incoming data.",
         "sidebarTitle": "Poll Fds"
       }
     }, {
@@ -147,7 +147,7 @@ export const pageMap = [{
       name: "select-fds",
       route: "/system-programming/samples/select-fds",
       frontMatter: {
-        "description": "The sample demonstrates how to use select() to monitor multiple file descriptors simultaneously — watching both stdin and a TCP listening socket without blocking on either.",
+        "description": "The sample demonstrates how to use **select()** to monitor one or multiple file descriptors at the same time.",
         "sidebarTitle": "Select Fds"
       }
     }, {
