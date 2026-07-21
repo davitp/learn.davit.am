@@ -1,0 +1,105 @@
+---
+title: Advanced File I/O
+description: Beyond read/write — duplicating descriptors, seeking with lseek, sparse files and holes, and controlling files with fcntl.
+---
+
+Once you can `open`/`read`/`write`/`close`, a handful of extra system calls unlock the rest of
+Unix file I/O: duplicating descriptors (the basis of redirection), moving the file offset,
+sparse files, and per-descriptor control with `fcntl`.
+
+<MiroEmbed widget="3458764647123477201" title="Advanced File I/O — course slides" />
+
+## Duplicating descriptors
+
+`dup()` and `dup2()` make a second descriptor that refers to the **same** open file
+description — so both share one offset and set of flags. This is exactly how shell redirection
+works: to send a program's output to a file, you `open` the file and then `dup2` it onto
+descriptor `1` (stdout):
+
+```c
+int fd = open("out.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+dup2(fd, STDOUT_FILENO);   // stdout now writes to out.log
+// everything printf/write to fd 1 now lands in out.log
+```
+
+That is the mechanism behind `./program > out.log` in the shell.
+
+## Moving the offset: `lseek`
+
+Every open file has a **current offset**. `lseek(fd, offset, whence)` moves it, where `whence`
+is one of:
+
+- `SEEK_SET` — from the beginning of the file
+- `SEEK_CUR` — relative to the current position
+- `SEEK_END` — from the end (e.g. `lseek(fd, 0, SEEK_END)` gives the file size)
+
+This enables random access — jump anywhere, then read or write.
+
+## Sparse files and holes
+
+Seeking *past* the end of a file and writing creates a **hole**: a region that reads back as
+zeros but occupies **no disk space**. Such a file is called **sparse**, and its *logical* size
+(what `ls` reports) can be far larger than its *physical* size (what `du` reports):
+
+```text
+logical:  [ data ][         hole (zeros)         ][ data ]
+physical:  ▓▓▓▓▓▓                                  ▓▓▓▓▓▓   ← only data costs disk
+```
+
+Modern kernels let you walk the structure efficiently with `lseek`'s `SEEK_DATA` and
+`SEEK_HOLE` (which report `ENXIO` past the end).
+
+## Truncating and inspecting
+
+- `truncate(path, len)` / `ftruncate(fd, len)` — grow or shrink a file to an exact size.
+- `stat(path, &st)` / `fstat(fd, &st)` — retrieve metadata: size, permissions, owner,
+  timestamps, and the block count (useful for spotting sparse files).
+
+## Controlling descriptors: `fcntl`
+
+`fcntl(fd, cmd, …)` is the swiss-army knife for descriptors. Common uses:
+
+- `F_DUPFD` — duplicate a descriptor (like `dup`)
+- `FD_CLOEXEC` — close this descriptor automatically on `exec`
+- `O_APPEND` — always append on write
+- `O_NONBLOCK` — make I/O non-blocking (important later, for pipes and sockets)
+
+<Callout title="See it in code">
+The [Redirect the output](/system-programming/samples/redirect-output),
+[Creating holes](/system-programming/samples/make-hole), and
+[Detect holes](/system-programming/samples/detect-holes) samples put `dup2`, `lseek`, and
+`SEEK_DATA`/`SEEK_HOLE` to work.
+</Callout>
+
+## Practice / lab
+
+- Redirect a program's stdout and stderr to a file using `dup2`, then observe with `strace`.
+- Create a sparse file by `lseek`-ing past the end and writing; compare `ls -l` with `du`.
+- Use `fstat` to print a file's logical size and allocated blocks.
+
+## Homework
+
+- [FS-4: Redirect standard input](/system-programming/homeworks/file-systems/redirect-cin)
+- [FS-5: Manual append](/system-programming/homeworks/file-systems/manual-append)
+- [FS-10: Copy a file with holes](/system-programming/homeworks/file-systems/copy-with-holes)
+
+## References & resources
+
+**Required**
+
+- The Linux Programming Interface (Kerrisk) — Ch. 5–6: File I/O, deeper concepts
+- [Understanding sparse files (Red Hat)](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/storage_administration_guide/sparse-files)
+
+**Optional / enrichment**
+
+- [Beej's Guide — file descriptors](https://beej.us/guide/bgipc/html/#file-descriptors)
+- [`dup(2)`](https://man7.org/linux/man-pages/man2/dup.2.html) · [`lseek(2)`](https://man7.org/linux/man-pages/man2/lseek.2.html) · [`fcntl(2)`](https://man7.org/linux/man-pages/man2/fcntl.2.html)
+- [`lseek()` to read/write alternate bytes (GeeksforGeeks)](https://www.geeksforgeeks.org/lseek-in-c-to-read-the-alternate-nth-byte-and-write-it-in-another-file/)
+
+## Self-check
+
+1. What do two descriptors share after `dup2`, and what does that imply about the offset?
+2. How does `dup2` relate to shell redirection like `> out.log`?
+3. What is the difference between `SEEK_END` and `SEEK_CUR`?
+4. How does a sparse file save disk space, and how can you observe it?
+5. What is `FD_CLOEXEC` for?

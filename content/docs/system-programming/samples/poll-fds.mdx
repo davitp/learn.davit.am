@@ -1,0 +1,129 @@
+---
+title: "Using poll"
+description: "The sample demonstrates how to use poll() to monitor multiple file descriptors — watching both stdin and a named pipe (FIFO) for incoming data."
+---
+
+The sample demonstrates how to use **poll()** to monitor multiple file descriptors at the same time.
+The program creates a FIFO with `mkfifo()` and watches both **stdin** (keyboard input) and the **FIFO** for incoming data, printing from whichever becomes ready first.
+
+Unlike `select()`, the `pollfd` array does **not** need to be rebuilt before every call — only the `revents` field is overwritten by the kernel after each call.
+
+```c
+#include <iostream>
+#include <cstring>
+#include <cerrno>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <poll.h>
+
+#define BUFFER_SIZE 256
+#define TIMEOUT_MS 3000
+#define FIFO_PATH "fifo-test"
+
+/**
+ * The example program to monitor stdin and a FIFO using poll()
+ */
+int main() {
+
+	// create the named pipe in the current directory with rw-r--r-- permissions;
+	// if it already exists that is fine — just continue
+	int mkfifoResult = mkfifo(FIFO_PATH, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if (mkfifoResult == -1 && errno != EEXIST) {
+		std::cerr << "Mkfifo failed: " << strerror(errno) << std::endl;
+		return errno;
+	}
+
+	// open the FIFO in read-write mode so we hold the write-end open ourselves;
+	// opening O_RDONLY would cause poll() to immediately report POLLHUP whenever
+	// no external writer has the FIFO open — O_RDWR avoids this by keeping
+	// the write-end open ourselves; O_NONBLOCK prevents open() from blocking
+	int fifoFd = open(FIFO_PATH, O_RDWR | O_NONBLOCK);
+	if (fifoFd == -1) {
+		std::cerr << "Open failed: " << strerror(errno) << std::endl;
+		return errno;
+	}
+
+	// prepare a buffer for reading; +1 to always have room for the null terminator
+	char buffer[BUFFER_SIZE + 1];
+
+	// the number of file descriptors we want to monitor
+	const int fdsCount = 2;
+
+	// describe the file descriptors we want to monitor
+	struct pollfd fds[fdsCount];
+
+	// slot 0: watch stdin for keyboard input
+	fds[0].fd     = STDIN_FILENO;
+	fds[0].events = POLLIN;
+
+	// slot 1: watch the FIFO for data written by an external process
+	fds[1].fd     = fifoFd;
+	fds[1].events = POLLIN;
+
+	std::cout << "Monitoring stdin and " << FIFO_PATH << std::endl;
+	std::cout << "In another terminal run: echo \"hello\" >> " << FIFO_PATH << std::endl;
+
+	// we will read in an infinite loop
+	while (true) {
+
+		// block until at least one descriptor is ready, or the timeout expires;
+		// unlike select(), the fds array does not need to be reset before each call
+		int totalReady = poll(fds, fdsCount, TIMEOUT_MS);
+
+		// an error occurred, so it needs to be handled
+		if (totalReady == -1) {
+			std::cerr << "Poll failed: " << strerror(errno) << std::endl;
+			break;
+		}
+
+		// neither descriptor became ready before the timeout
+		if (totalReady == 0) {
+			std::cout << "No file became available for reading/writing within the given timeout" << std::endl;
+			continue;
+		}
+
+		// in general we check all the descriptors provided to find which ones are ready
+		for (int i = 0; i < fdsCount; ++i) {
+
+			// checking if the current file is marked as ready to read
+			if (fds[i].revents & POLLIN) {
+
+				// we can safely read without blocking
+				int totalBytes = read(fds[i].fd, buffer, BUFFER_SIZE);
+
+				// null-terminate at the last read byte and print
+				buffer[totalBytes] = '\0';
+				std::cout << "Read from fd=" << fds[i].fd << ": " << buffer << std::endl;
+			}
+		}
+	}
+
+	close(fifoFd);
+	unlink(FIFO_PATH);
+
+	return 0;
+}
+```
+
+The file can be compiled and executed as follows:
+```sh
+g++ poll.cpp -o poll
+./poll
+```
+
+In a separate terminal, append data to the FIFO to trigger the handler:
+```sh
+echo "hello from fifo" >> fifo-test
+```
+
+The output should look like:
+```
+Monitoring stdin and fifo-test
+In another terminal run: echo "hello" >> fifo-test
+No file became available for reading/writing within the given timeout
+Read from fd=0: hi there
+No file became available for reading/writing within the given timeout
+Read from fd=3: hello from fifo
+No file became available for reading/writing within the given timeout
+```

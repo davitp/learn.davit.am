@@ -1,0 +1,108 @@
+---
+title: Shared Memory
+description: The fastest IPC — mapping the same memory into multiple processes with mmap and POSIX shared memory, and why it needs explicit synchronization.
+---
+
+**Shared memory** is the fastest form of IPC: instead of copying data through the kernel (as
+pipes do), two processes map the *same* physical pages into their address spaces and read and
+write them directly. The trade-off is that it provides **no synchronization** of its own — you
+must add that yourself.
+
+<MiroEmbed widget="3458764650717067403" title="Shared memory — course slides" />
+
+## Why it's fast
+
+With pipes or sockets, every byte is copied from one process into the kernel and out to
+another. With shared memory, once the region is set up there is **no copying and no kernel
+involvement** on each access — both processes simply dereference pointers into the same RAM.
+That speed is why it's used in databases, high-performance computing, and multimedia.
+
+## `mmap`
+
+`mmap()` maps something into your address space and returns a pointer. It has two main uses:
+
+- **File-backed** — map a file so its contents appear as memory; writes go back to the file.
+- **Anonymous** (`MAP_ANONYMOUS`) — plain memory not backed by any file.
+
+The visibility of writes depends on the flag:
+
+- `MAP_SHARED` — changes are visible to other processes mapping the same object.
+- `MAP_PRIVATE` — copy-on-write; changes stay private to your process.
+
+```c
+int fd = open("data.bin", O_RDWR);
+char *p = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+p[0] = 'X';          // writes straight through to the file / shared region
+munmap(p, len);      // unmap when done  (msync() forces a file flush)
+```
+
+## POSIX shared memory (recommended)
+
+The modern, file-descriptor-based API. Create (or open) a named object, size it, then `mmap`
+it — the object lives under `/dev/shm/`:
+
+```c
+int fd = shm_open("/mydata", O_CREAT | O_RDWR, 0644);
+ftruncate(fd, len);                                   // set its size
+void *p = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+// ... share via p ...
+shm_unlink("/mydata");                                // remove the object
+```
+
+Because it uses file descriptors, it integrates cleanly with the rest of the POSIX API and is
+cleaned up when unlinked.
+
+## System V shared memory (legacy)
+
+The older API is still common: `shmget()` (create/get by a key from `ftok()`), `shmat()` /
+`shmdt()` (attach/detach), and `shmctl(..., IPC_RMID)` to remove. Segments **persist until
+removed** or reboot — inspect them with `ipcs -m` and clean up with `ipcrm`. Prefer POSIX for
+new code.
+
+## You must synchronize
+
+Shared memory is just memory — nothing stops two processes writing the same bytes at once, so
+the [synchronization](/system-programming/topics/synchronization) rules apply across processes
+too:
+
+<Callout>
+Protect access with **process-shared** primitives — POSIX named semaphores (`sem_open`),
+process-shared mutexes (a `pthread_mutex_t` with `PTHREAD_PROCESS_SHARED` placed *in* the
+shared region), or file locks.
+</Callout>
+
+## Practice / lab
+
+- `mmap` a file, modify it through the pointer, and confirm the change persists after `munmap`.
+- Write a POSIX writer/reader pair: one `shm_open`+`ftruncate`+`mmap`+writes, the other reads;
+  clean up with `shm_unlink`.
+- Put a counter in shared memory, increment it from several processes, watch it race, then fix
+  it with a named semaphore.
+- Compare throughput of shared memory vs. pipes vs. files.
+
+## Homework
+
+- [IPC-3: Shared Array](/system-programming/homeworks/ipc/shared-array) — a `shared_array` class
+  shared between processes, synchronized with a cross-process semaphore.
+
+## References & resources
+
+**Required**
+
+- [Understanding `mmap` (Baeldung)](https://www.baeldung.com/linux/mmap-system-call)
+- [POSIX shared memory with `shm_open` (video)](https://www.youtube.com/watch?v=ukM_zzrIeXs)
+- The Linux Programming Interface (Kerrisk) — Ch. 49 (memory mappings), 54 (POSIX shm)
+
+**Optional / enrichment**
+
+- [`mmap(2)`](https://man7.org/linux/man-pages/man2/mmap.2.html) · [`shm_open(3)`](https://man7.org/linux/man-pages/man3/shm_open.3.html) · [`shm_overview(7)`](https://man7.org/linux/man-pages/man7/shm_overview.7.html)
+- [IPC shared memory (GeeksforGeeks)](https://www.geeksforgeeks.org/ipc-shared-memory/)
+- [System V vs POSIX IPC](https://stackoverflow.com/questions/4582968/system-v-ipc-vs-posix-ipc)
+
+## Self-check
+
+1. Why is shared memory the fastest IPC mechanism?
+2. What is the difference between `MAP_SHARED` and `MAP_PRIVATE`?
+3. Which calls create and size a POSIX shared-memory object, and where does it appear?
+4. How does System V shared memory differ from POSIX, and how do you inspect/remove it?
+5. Why does shared memory require explicit synchronization, and what can provide it?

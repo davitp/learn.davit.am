@@ -1,0 +1,136 @@
+---
+title: Unix File Systems
+description: How a Unix system organizes files — the directory tree, file types, links, and the user/group permission model.
+---
+
+With a working Linux environment in place, this week is about the **file system**: how a
+Unix-like system organizes everything on disk, how you move around it from the shell, and how
+ownership and permissions control who can do what.
+
+<MiroEmbed widget="3458764647121969143" title="Unix File Systems — course slides" />
+
+## Everything is a file
+
+Unix takes a famous stance: **almost everything is a file** — not just documents, but
+directories, devices, and communication channels. `ls -l` shows the type in the first
+character of each line:
+
+| Symbol | Type | Example |
+| --- | --- | --- |
+| `-` | Regular file | a text file, a program |
+| `d` | Directory | `/home`, `/etc` |
+| `l` | Symbolic link | `/bin -> /usr/bin` |
+| `c` / `b` | Character / block device | `/dev/tty`, `/dev/sda` |
+| `s` | Socket | a local IPC endpoint |
+| `p` | FIFO (named pipe) | a `mkfifo` pipe |
+
+## The directory tree
+
+Everything hangs off a single root, `/`. A Unix system follows a fairly standard layout, so
+you can find your way around any distribution:
+
+```text
+/
+├── bin/    core user programs (ls, cp, sh, …)
+├── sbin/   system/administrative programs
+├── etc/    system-wide configuration files
+├── home/   user home directories
+├── lib/    essential shared libraries
+├── usr/    the bulk of user programs & libraries
+├── var/    variable data — logs, spools, databases
+├── tmp/    temporary files (may be auto-cleaned)
+├── mnt/    mount points for other filesystems
+├── dev/    device files
+└── proc/   virtual files: live process & kernel info
+```
+
+<Callout>
+Exact contents vary between distributions — this hierarchy is a convention (the *Filesystem
+Hierarchy Standard*), not a hard rule. `/proc` and `/dev` are especially interesting: they
+aren't real files on disk but views the kernel exposes as files.
+</Callout>
+
+### Navigating
+
+Paths are either **absolute** (from the root, e.g. `/home/your-username/notes`) or **relative** to
+where you are now. Three shortcuts do most of the work:
+
+- `~` — your home directory
+- `.` — the current directory
+- `..` — the parent directory
+
+## Hard links and symbolic links
+
+A filename is just a pointer to an **inode** — the on-disk record that actually describes a
+file. That indirection gives two kinds of links:
+
+- A **hard link** is another name for the *same* inode. The data survives as long as any hard
+  link to it exists. Create one with `ln target name`.
+- A **symbolic (soft) link** is a small file that just stores a *path* to another name. If the
+  target is removed, the link dangles. Create one with `ln -s target name`.
+
+`ls -i` shows inode numbers, so you can see two hard links share one inode while a symlink has
+its own.
+
+## Users, groups, and permissions
+
+Every file has an **owner** (a user) and a **group**. Permissions are granted separately to
+three classes — **user (owner)**, **group**, and **others** — each with **read (r)**,
+**write (w)**, and **execute (x)** bits:
+
+```text
+ -   rwx   r-x   r--
+ │    │     │     └── others: read
+ │    │     └──────── group: read + execute
+ │    └────────────── owner: read + write + execute
+ └─────────────────── type (- = regular file)
+```
+
+The same bits are often written in **octal**, where `r=4`, `w=2`, `x=1`:
+
+| Symbolic | Octal | Meaning |
+| --- | --- | --- |
+| `rwxrwxrwx` | `777` | everyone can do everything (rarely a good idea) |
+| `rwxr-xr-x` | `755` | owner full; others read + run — typical for programs |
+| `rwx------` | `700` | private to the owner |
+| `rw-r--r--` | `644` | owner writes; everyone reads — typical for files |
+| `rw-rw-r--` | `664` | owner + group write; others read |
+| `rw-------` | `600` | private file, owner only |
+
+Manage them from the shell:
+
+- `chmod 644 file` or `chmod u+x file` — change permissions
+- `chown user:group file` — change ownership
+- `ls -l` — inspect type, permissions, owner, and group
+
+## Practice / lab
+
+- Walk the tree: inspect the top-level folders under `/`, then peek into `/proc` and `/dev`.
+- Discover commands with `man`, `which`, and `type`; navigate with `cd`, `pwd`, `ls -l`.
+- Create hard and symbolic links with `ln` / `ln -s` and compare inodes with `ls -i`.
+- Change modes and ownership with `chmod` / `chown`; experiment with `umask`.
+- Look at the account model in `/etc/passwd` and `/etc/group`; try `id`, `who`, `groups`.
+
+## References & resources
+
+**Required**
+
+- [Filesystem Hierarchy Standard (FHS)](https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html)
+- [Linux file types (TLDP)](https://tldp.org/LDP/intro-linux/html/sect_03_01.html)
+- [Linux file permissions explained (Red Hat)](https://www.redhat.com/sysadmin/linux-file-permissions-explained)
+- [ECE 252 — The File System (video)](https://www.youtube.com/watch?v=bs9yXzKLQuY)
+
+**Optional / enrichment**
+
+- [Linux Journey: The Filesystem](https://linuxjourney.com/lesson/the-filesystem)
+- [An introduction to Linux permissions (DigitalOcean)](https://www.digitalocean.com/community/tutorials/an-introduction-to-linux-permissions)
+- [Linux file system explained (video)](https://www.youtube.com/watch?v=HbgzrKJvDRw)
+- [Права доступа и владения файлами (RUS, video)](https://www.youtube.com/watch?v=dR4DIo7HYoU)
+
+## Self-check
+
+1. What is the difference between a hard link and a symbolic link?
+2. Which directory holds configuration files for most system services?
+3. What do the three groups in `rwxr-xr--` represent, and what is it in octal?
+4. How do you find the manual page for a command?
+5. Which virtual directory exposes information about running processes?

@@ -1,0 +1,121 @@
+---
+title: Synchronization
+description: Why concurrent threads corrupt shared data, and the primitives — mutexes, spinlocks, semaphores, and condition variables — that fix it.
+---
+
+Because threads share memory, letting two of them touch the same data at once leads to
+**race conditions** — bugs whose outcome depends on timing. This week is about spotting those
+races and fixing them with **synchronization primitives**.
+
+<MiroEmbed widget="3458764647125504206" title="Synchronization — course slides" />
+
+## Race conditions
+
+Consider several threads each incrementing one shared counter. The result is almost never
+what you expect, because `counter++` is not atomic — it compiles to *load → add → store*, and
+two threads can interleave those steps and lose an update:
+
+```text
+thread A: load 41         thread B: load 41
+thread A: add  → 42       thread B: add  → 42
+thread A: store 42        thread B: store 42     ← one increment lost
+```
+
+The stretch of code that must not run in two threads at once is the **critical section**. The
+fix is to make it execute **atomically** — one thread at a time.
+
+## Mutexes
+
+A **mutex** (mutual-exclusion lock) lets exactly one thread hold the lock at a time; others
+block until it is released:
+
+```c
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_lock(&lock);
+counter++;                 // critical section — now safe
+pthread_mutex_unlock(&lock);
+```
+
+Keep critical sections **short**: while the lock is held, every other thread that wants it
+waits.
+
+## Spinlocks
+
+A **spinlock** does the same job but *busy-waits* (spins) instead of sleeping. That avoids the
+cost of putting a thread to sleep and waking it, so it wins for **very short** critical
+sections on multiple cores — but wastes CPU if held for long.
+
+## Semaphores
+
+A **semaphore** is a counter guarding a finite number of resources. `sem_wait` decrements
+(blocking at zero) and `sem_post` increments. A binary semaphore acts like a lock; a counting
+semaphore coordinates producers and consumers:
+
+```c
+sem_wait(&slots);   // take one resource (block if none)
+// ... use it ...
+sem_post(&slots);   // give it back
+```
+
+## Condition variables
+
+A **condition variable** lets a thread *wait until something becomes true* without busy-waiting.
+It is always paired with a mutex; `pthread_cond_wait` atomically releases the lock and sleeps,
+and another thread calls `pthread_cond_signal`/`broadcast` to wake it.
+
+<Callout>
+Always re-check the condition in a `while` loop after waking — condition variables are subject
+to **spurious wakeups**.
+</Callout>
+
+## Atomics and deadlock
+
+For the simplest cases, **atomic operations** (like compare-and-swap, CAS) update a value in a
+single indivisible step with no explicit lock — the basis of lock-free structures.
+
+Locking introduces its own hazard: **deadlock**, where threads wait on each other forever. It
+requires four simultaneous conditions — **mutual exclusion**, **hold-and-wait**, **no
+preemption**, and **circular wait** — and breaking any one of them prevents it. (More on this
+with the [classical synchronization problems](/system-programming/topics/classical-sync-problems).)
+
+<Callout title="See it in code">
+The [Bounded buffer](/system-programming/samples/bounded-buffer) sample implements the
+producer–consumer problem two ways — with semaphores and with condition variables.
+</Callout>
+
+## Practice / lab
+
+- Increment a shared counter from many threads *without* a lock and watch it go wrong; then
+  protect it with a mutex and confirm the result is correct.
+- Build a small producer–consumer with a counting semaphore.
+- Use a condition variable so a consumer waits until an item is available (no busy-waiting).
+- Compare CPU usage of a spinlock vs. a mutex for a tiny critical section.
+
+## Homework
+
+- [TH-2: Thread Pool](/system-programming/homeworks/threads/thread-pool) — a thread pool built
+  on a mutex and a condition variable.
+
+## References & resources
+
+**Required**
+
+- [Mutex vs. semaphore (GeeksforGeeks)](https://www.geeksforgeeks.org/mutex-vs-semaphore/)
+- [ECE 252 — Synchronization & atomicity (video)](https://www.youtube.com/watch?v=oehU_Jie3lI)
+- [ECE 252 — Semaphores (video)](https://www.youtube.com/watch?v=TF9q76lEwKI)
+- Operating Systems: Three Easy Pieces — Locks & Condition Variables
+
+**Optional / enrichment**
+
+- [Compare-and-swap (Wikipedia)](https://en.wikipedia.org/wiki/Compare-and-swap)
+- [`pthread_mutex_lock(3)`](https://man7.org/linux/man-pages/man3/pthread_mutex_lock.3p.html) · [`sem_wait(3)`](https://man7.org/linux/man-pages/man3/sem_wait.3.html) · [`pthread_cond_wait(3)`](https://man7.org/linux/man-pages/man3/pthread_cond_wait.3p.html)
+- [Using semaphores in POSIX concurrency control](https://packt.medium.com/how-to-use-semaphores-in-posix-concurrency-control-144c34549807)
+
+## Self-check
+
+1. What causes a race condition, and why isn't `counter++` safe?
+2. What is a critical section?
+3. How does a spinlock differ from a mutex, and when is each appropriate?
+4. How does a semaphore differ from a mutex?
+5. Name the four conditions required for a deadlock.

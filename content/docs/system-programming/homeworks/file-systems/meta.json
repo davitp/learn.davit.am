@@ -1,0 +1,11 @@
+{
+  "title": "File Systems",
+  "pages": [
+    "read-file",
+    "copy-file",
+    "secure-file-deletion",
+    "redirect-cin",
+    "manual-append",
+    "copy-with-holes"
+  ]
+}

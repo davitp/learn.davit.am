@@ -1,0 +1,118 @@
+---
+title: Sockets
+description: The BSD socket API for network programming — domains and types, byte order, and the TCP and UDP client/server call sequences.
+---
+
+A **socket** is an endpoint for communication between two programs — across the network or on
+the same machine. The **BSD socket API** exposes it as a file descriptor, so once a connection
+is set up you `read`/`write` (or `send`/`recv`) it much like a file. This week turns the
+[networking](/system-programming/topics/networking) concepts into working code.
+
+<MiroEmbed widget="3458764658502950320" title="Sockets — course slides" />
+
+## Domains and types
+
+A socket is created with `socket(domain, type, protocol)`. Two choices define its behaviour:
+
+| Domain (address family) | Used for |
+| --- | --- |
+| `AF_INET` / `AF_INET6` | IPv4 / IPv6 network communication |
+| `AF_UNIX` (`AF_LOCAL`) | local IPC by filesystem path (no network stack) |
+
+| Type | Semantics | Internet protocol |
+| --- | --- | --- |
+| `SOCK_STREAM` | reliable, ordered byte stream | TCP |
+| `SOCK_DGRAM` | connectionless datagrams, message boundaries | UDP |
+| `SOCK_RAW` | direct protocol access (needs root) | — |
+
+`protocol` is almost always `0` (the default for the type).
+
+## Byte order and addresses
+
+Networks use **big-endian** ("network byte order"), which may differ from your host — so ports
+and addresses **must** be converted:
+
+- `htons` / `htonl` — host → network (16/32-bit); `ntohs` / `ntohl` — the reverse
+- `inet_pton` / `inet_ntop` — convert an address string ↔ its binary form
+
+Addresses are passed in family-specific structs (`struct sockaddr_in` for IPv4), always cast to
+the generic `struct sockaddr *` when calling the API.
+
+## TCP: the call sequences
+
+TCP is connection-oriented, so server and client follow a fixed choreography:
+
+```text
+server:  socket → bind → listen → accept ⇄ recv / send → close
+client:  socket →                connect ⇄ send / recv → close
+```
+
+- **Server:** `socket()` → `bind()` a local address/port → `listen()` (mark passive, set a
+  backlog) → `accept()` (blocks; returns a **new** socket per client while the listener keeps
+  listening) → `recv`/`send` → `close`.
+- **Client:** `socket()` → `connect()` (performs the three-way handshake) → `send`/`recv` →
+  `close`.
+
+<Callout title="Full worked code">
+The [TCP server](/system-programming/samples/tcp-server) and
+[TCP client](/system-programming/samples/tcp-client) samples implement exactly this sequence,
+with error handling and `SO_REUSEADDR`, ready to compile and run.
+</Callout>
+
+## UDP: connectionless
+
+With `SOCK_DGRAM` there is no `listen`/`accept`/`connect`. Each message carries its own
+destination: the server `bind`s and loops on `recvfrom` (which also yields the sender's
+address) and replies with `sendto`. Datagrams preserve message boundaries but may be lost,
+duplicated, or reordered.
+
+## Handling many clients
+
+A plain `accept` loop is **iterative** — one client at a time. To serve many at once you can:
+
+- **fork** a process per connection, or **spawn a thread** per connection, or
+- use **I/O multiplexing** (`select`/`poll`/`epoll`) to handle many sockets in one thread — the
+  most scalable approach, and the subject of [I/O multiplexing](/system-programming/topics/io-multiplexing).
+
+<Callout title="Common pitfalls">
+Convert byte order for every port/address; never assume one `send` maps to one `recv` (TCP is a
+stream — loop on partial transfers); set `SO_REUSEADDR` so a restarted server can rebind
+immediately; and ignore/handle `SIGPIPE` so writing to a closed peer doesn't kill your process.
+</Callout>
+
+## Practice / lab
+
+- Write a TCP echo server (`socket`/`bind`/`listen`/`accept`/`recv`/`send`) and test it with
+  `nc`; then write a matching client.
+- Reimplement the echo service over UDP with `sendto`/`recvfrom`; note the structural
+  differences.
+- Make the TCP server handle multiple clients — first with `fork`, then with threads.
+- Use `getaddrinfo()` to resolve a hostname to addresses (IPv4 and IPv6).
+
+## Homework
+
+- [NET-1: Echo Server](/system-programming/homeworks/networking/echo-server) — a TCP echo
+  server and client using the BSD socket API.
+
+## References & resources
+
+**Required**
+
+- [Beej's Guide to Network Programming](https://beej.us/guide/bgnet/) — the definitive socket tutorial
+- [Socket programming in C (video)](https://www.youtube.com/watch?v=LtXEMwSG5-8)
+- [Socket programming (GeeksforGeeks)](https://www.geeksforgeeks.org/socket-programming-cc/)
+- The Linux Programming Interface (Kerrisk) — Ch. 56–60: sockets
+
+**Optional / enrichment**
+
+- [`socket(2)`](https://man7.org/linux/man-pages/man2/socket.2.html) · [`bind(2)`](https://man7.org/linux/man-pages/man2/bind.2.html) · [`accept(2)`](https://man7.org/linux/man-pages/man2/accept.2.html) · [`connect(2)`](https://man7.org/linux/man-pages/man2/connect.2.html) · [`getaddrinfo(3)`](https://man7.org/linux/man-pages/man3/getaddrinfo.3.html)
+- [The C10K problem](http://www.kegel.com/c10k.html) — scaling socket servers
+- Stevens, Unix Network Programming, Vol. 1
+
+## Self-check
+
+1. What does a socket represent, and why is it exposed as a file descriptor?
+2. What is the difference between `AF_INET` and `AF_UNIX`?
+3. How do `SOCK_STREAM` and `SOCK_DGRAM` differ?
+4. Why are `htons`/`htonl` necessary?
+5. Why does `accept()` return a new socket, and what is the full TCP server call sequence?

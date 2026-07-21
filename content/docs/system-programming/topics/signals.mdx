@@ -1,0 +1,116 @@
+---
+title: Signals
+description: Signals as asynchronous software interrupts — the common signals, sending them with kill, and handling them reliably with sigaction.
+---
+
+A **signal** is an asynchronous notification delivered to a process — a lightweight "software
+interrupt". The kernel, another process, or the terminal can send one at any time; the process
+can catch it, ignore it, or let the default action happen. Signals are the first and simplest
+form of inter-process communication we meet.
+
+<MiroEmbed widget="3458764647800856266" title="Signals — course slides" />
+
+## What is a signal?
+
+Signals come from many sources — the kernel (on a fault), the terminal driver (Ctrl+C),
+another process (`kill`), a timer (`alarm`) — and follow a simple lifecycle: **generation →
+delivery → handling**. When one is delivered, the process's normal flow is interrupted to run
+the signal's disposition, then resumes.
+
+## Common signals
+
+| Signal | Meaning |
+| --- | --- |
+| `SIGTERM` | polite request to terminate (default kill) |
+| `SIGKILL` | forced termination — **cannot** be caught or ignored |
+| `SIGINT` | interrupt from the keyboard (Ctrl+C) |
+| `SIGTSTP` / `SIGCONT` | suspend (Ctrl+Z) / resume |
+| `SIGSTOP` | forced suspend — **cannot** be caught |
+| `SIGSEGV` / `SIGFPE` / `SIGILL` | segfault / bad arithmetic / illegal instruction |
+| `SIGCHLD` | a child process stopped or terminated |
+| `SIGUSR1` / `SIGUSR2` | free for your own use |
+| `SIGALRM` | a timer set with `alarm()` expired |
+| `SIGPIPE` | wrote to a pipe/socket with no reader |
+
+## Sending signals
+
+- `kill(pid, sig)` — send a signal to a process (or process group)
+- `raise(sig)` — send one to yourself
+- `pthread_kill(thread, sig)` — target a specific thread
+- From the shell: `kill`, `killall`, `pkill`
+
+## Handling signals
+
+A process chooses a **disposition** per signal: the default action, ignore it (`SIG_IGN`), or
+run a **custom handler**. Use **`sigaction()`** — the modern, reliable API (the old `signal()`
+has portability pitfalls, so avoid it):
+
+```c
+#include <signal.h>
+#include <stdio.h>
+
+void on_sigint(int sig) {
+    // (only async-signal-safe calls belong here)
+    write(1, "caught SIGINT\n", 14);
+}
+
+int main(void) {
+    struct sigaction sa = {0};
+    sa.sa_handler = on_sigint;
+    sigemptyset(&sa.sa_mask);   // signals blocked during the handler
+    sa.sa_flags = SA_RESTART;   // auto-restart interrupted syscalls
+    sigaction(SIGINT, &sa, NULL);
+
+    for (;;) pause();           // wait for signals
+}
+```
+
+The `struct sigaction` also offers `sa_sigaction` (an extended handler with `siginfo_t` when
+you set `SA_SIGINFO`), `sa_mask` (extra signals to block while the handler runs), and flags
+like `SA_RESTART` and `SA_NODEFER`.
+
+<Callout title="Handler safety">
+A handler interrupts your program at an arbitrary point, so only call **async-signal-safe**
+functions inside it (e.g. `write`, not `printf`). `SIGKILL` and `SIGSTOP` can never be caught,
+handled, or ignored.
+</Callout>
+
+## Timers
+
+`alarm(seconds)` schedules a one-shot `SIGALRM`; `setitimer()` provides repeating, finer-grained
+timers. Combined with a handler, they implement timeouts.
+
+## Practice / lab
+
+- Catch `SIGINT` with `sigaction` and print a message instead of terminating; send it with
+  Ctrl+C and with `kill -INT <pid>`.
+- Fork a child, have the parent send `SIGUSR1` with `kill()`, and let the child respond with
+  `SIGUSR2`.
+- Use `alarm()` to implement a timeout around a blocking read.
+
+## Homework
+
+- [IPC-1: Signal Echo](/system-programming/homeworks/ipc/signal-echo) — print details of the
+  sending process from inside a `SIGUSR1` handler.
+
+## References & resources
+
+**Required**
+
+- [Signals in C (GeeksforGeeks)](https://www.geeksforgeeks.org/signals-c-language/)
+- [Signal handling with sigaction (video)](https://www.youtube.com/watch?v=83M5-NPDeWs)
+- [Understanding sigaction (Baeldung)](https://www.baeldung.com/linux/sigaction-function)
+- The Linux Programming Interface (Kerrisk) — Ch. 20–21: signals
+
+**Optional / enrichment**
+
+- [`signal(7)`](https://man7.org/linux/man-pages/man7/signal.7.html) · [`sigaction(2)`](https://man7.org/linux/man-pages/man2/sigaction.2.html) · [`kill(2)`](https://man7.org/linux/man-pages/man2/kill.2.html) · [`alarm(2)`](https://man7.org/linux/man-pages/man2/alarm.2.html)
+- [Signal (IPC) (Wikipedia)](https://en.wikipedia.org/wiki/Signal_(IPC))
+
+## Self-check
+
+1. What is the difference between `SIGTERM` and `SIGKILL`?
+2. Why is `sigaction()` preferred over `signal()`?
+3. What are the possible dispositions for a signal?
+4. Why must you only call async-signal-safe functions inside a handler?
+5. How does `alarm()` use signals to implement a timeout?
