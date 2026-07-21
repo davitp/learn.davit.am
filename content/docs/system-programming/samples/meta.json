@@ -1,0 +1,21 @@
+{
+  "title": "Samples",
+  "pages": [
+    "makefile",
+    "open-file",
+    "read-file",
+    "copy-file",
+    "redirect-output",
+    "make-hole",
+    "detect-holes",
+    "create-process",
+    "create-thread",
+    "bounded-buffer",
+    "dining-philosophers",
+    "tcp-server",
+    "tcp-client",
+    "select-fds",
+    "poll-fds",
+    "epoll-fds"
+  ]
+}

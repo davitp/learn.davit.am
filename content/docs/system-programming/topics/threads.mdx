@@ -1,0 +1,108 @@
+---
+title: Threads
+description: Threads as lightweight units of execution that share a process's memory, and the POSIX threads (pthreads) API to create and join them.
+---
+
+A **thread** is a lightweight unit of execution *inside* a process. Where separate processes
+each get their own isolated memory, the threads of one process **share** its address space —
+which makes them cheap to create and ideal for parallel work on shared data, but also means
+they need careful coordination (the subject of next week).
+
+<MiroEmbed widget="3458764647124656756" title="Threads — course slides" />
+
+## Threads vs. processes
+
+A process owns memory; a thread runs *within* that memory. All threads of a process share the
+same code, globals, heap, and open file descriptors — but each has its **own stack**,
+registers, and thread id. Creating a thread is far cheaper than `fork`ing a process, and
+communication between threads is trivial because they already share memory.
+
+## Concurrency vs. parallelism
+
+- **Concurrency** — multiple tasks *in progress* over the same period, interleaved on one core.
+- **Parallelism** — multiple tasks running *at the same instant* on multiple cores.
+
+Threads give you concurrency; on a multi-core machine they can also give you true parallelism.
+
+## User vs. kernel threads
+
+Threads can be scheduled by a user-space library (**many-to-one**), directly by the kernel
+(**one-to-one**), or a hybrid (**many-to-many**). Linux uses the **one-to-one** model: each
+pthread maps to a kernel-scheduled thread.
+
+## The pthreads API
+
+Linux threading uses the standardized **POSIX threads** API (`#include <pthread.h>`, compile
+with `-pthread`). The core functions:
+
+- `pthread_create()` — start a new thread running a given function
+- `pthread_join()` — wait for a thread to finish and collect its return value
+- `pthread_exit()` — terminate the calling thread
+- `pthread_self()` / `pthread_equal()` — identify and compare threads
+- `pthread_detach()` — let a thread clean up on its own (no `join` needed)
+
+```c
+#include <pthread.h>
+#include <stdio.h>
+
+void *worker(void *arg) {
+    printf("hello from thread %ld\n", (long) arg);
+    return NULL;
+}
+
+int main(void) {
+    pthread_t t;
+    pthread_create(&t, NULL, worker, (void *) 1);  // start
+    pthread_join(t, NULL);                          // wait
+    return 0;
+}
+```
+
+The thread function takes and returns `void *`, so you cast your argument and result through
+it. All pthread functions return `0` on success and an error code on failure.
+
+## Joinable vs. detached
+
+By default a thread is **joinable**: another thread must `pthread_join` it to release its
+resources — otherwise it leaks (the thread equivalent of a zombie). A **detached** thread
+(`pthread_detach`) frees itself on exit, but you can no longer retrieve its return value.
+
+<Callout title="Shared memory needs care">
+Because threads share memory, two threads touching the same data at once can corrupt it. Making
+that safe — with mutexes, semaphores, and condition variables — is the
+[Synchronization](/system-programming/topics/synchronization) topic.
+</Callout>
+
+## Practice / lab
+
+- Spawn several threads with `pthread_create`, pass each an argument, and print `pthread_self`.
+- Use `pthread_join` to wait for all of them; then try `pthread_detach` and compare.
+- Set a custom stack size or detach state via `pthread_attr_t`.
+- Compare thread vs. process creation cost with `time`.
+
+## Homework
+
+- [TH-1: Array Summary](/system-programming/homeworks/threads/array-sum)
+
+## References & resources
+
+**Required**
+
+- [Function pointers in C (GeeksforGeeks)](https://www.geeksforgeeks.org/function-pointer-in-c/)
+- [ECE 252 — Threads (video)](https://www.youtube.com/watch?v=NLVEuwWayvA)
+- [Introduction to pthreads](https://tamerlan.dev/introduction-to-pthreads/)
+- Operating Systems: Three Easy Pieces — Concurrency & Threads
+
+**Optional / enrichment**
+
+- [`pthread_create(3)`](https://man7.org/linux/man-pages/man3/pthread_create.3.html) · [`pthread_join(3)`](https://man7.org/linux/man-pages/man3/pthread_join.3.html) · [`pthread_detach(3)`](https://man7.org/linux/man-pages/man3/pthread_detach.3.html)
+- [POSIX threads specification (The Open Group)](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/pthread.h.html)
+- [Multithreading in C (GeeksforGeeks)](https://www.geeksforgeeks.org/multithreading-in-c/)
+
+## Self-check
+
+1. What is the key difference between a process and a thread?
+2. What does each thread have that is *not* shared with its siblings?
+3. Which function creates a thread, and what is the signature of the thread function?
+4. What happens if a joinable thread finishes but is never joined?
+5. What is the difference between concurrency and parallelism?

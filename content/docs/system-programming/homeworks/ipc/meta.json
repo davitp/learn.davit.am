@@ -1,0 +1,8 @@
+{
+  "title": "IPC",
+  "pages": [
+    "signal-echo",
+    "prime-calculator",
+    "shared-array"
+  ]
+}

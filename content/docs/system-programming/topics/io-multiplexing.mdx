@@ -1,0 +1,107 @@
+---
+title: I/O Multiplexing
+description: Serving many connections in one thread — non-blocking I/O and the select, poll, and epoll interfaces behind event-driven servers.
+---
+
+How does one server handle thousands of clients at once? Blocking on a single `recv` ignores
+everyone else, a thread per connection doesn't scale, and busy-polling burns CPU. **I/O
+multiplexing** is the answer: ask the kernel to watch many descriptors and tell you which are
+ready, so you only act on those. It's the foundation of every event-driven server.
+
+<MiroEmbed widget="3458764660621084159" title="I/O multiplexing — course slides" />
+
+## Non-blocking I/O
+
+By default I/O calls **block**. You make a descriptor non-blocking so calls return immediately
+with `EAGAIN`/`EWOULDBLOCK` instead of waiting:
+
+```c
+int flags = fcntl(fd, F_GETFL, 0);
+fcntl(fd, F_SETFL, flags | O_NONBLOCK);   // or socket(..., SOCK_STREAM | SOCK_NONBLOCK, 0)
+```
+
+But polling non-blocking descriptors in a tight loop wastes CPU — multiplexing is the right
+way to wait on many at once.
+
+## select, poll, epoll
+
+Three interfaces do the job, with very different scaling:
+
+- **`select`** — the classic. Watches three `fd_set` bitmaps, but is capped at `FD_SETSIZE`
+  (usually **1024**), must be **rebuilt every call**, and is **O(n)**. Avoid in new code.
+- **`poll`** — an array of `pollfd { fd, events, revents }`. No hard limit and no rebuilding
+  (only `revents` is overwritten), but still **O(n)**. A good portable fallback.
+- **`epoll`** — Linux-specific and **O(1)**: the kernel keeps the interest set (`epoll_ctl` to
+  add/modify/remove) and `epoll_wait` returns **only the ready descriptors** — no scanning.
+  The default choice for Linux servers (nginx, Redis, Node.js all use it).
+
+| | `select` | `poll` | `epoll` |
+| --- | --- | --- | --- |
+| FD limit | 1024 | unlimited | unlimited |
+| Scaling | O(n) | O(n) | O(1) |
+| Portability | POSIX | POSIX | Linux only |
+| Kernel tracks set | no | no | yes |
+| Recommendation | avoid | portable fallback | **use this** |
+
+## Level- vs edge-triggered
+
+`epoll` offers two notification modes:
+
+- **Level-triggered** (default) — keeps reporting readiness while data remains. Easiest to use.
+- **Edge-triggered** (`EPOLLET`) — reports only on a *change*, so you **must drain** the
+  descriptor until `EAGAIN`, and it requires non-blocking descriptors. Fewer wakeups, but
+  trickier to get right.
+
+## The event-driven (reactor) pattern
+
+Put it together and you get a single-threaded **event loop** over non-blocking descriptors:
+
+```text
+[epoll_wait] → ready fds → dispatch handlers → back to [epoll_wait]
+```
+
+No thread-per-connection overhead, no per-connection stacks — one thread can serve tens of
+thousands of connections. (Newer Linux kernels also offer **`io_uring`**, a ring-buffer async
+interface that goes further still, but `epoll` is the default for now.)
+
+<Callout title="See it in code">
+The [Using select](/system-programming/samples/select-fds),
+[Using poll](/system-programming/samples/poll-fds), and
+[Using epoll](/system-programming/samples/epoll-fds) samples monitor `stdin` and a FIFO with
+each interface — the same task three ways, so you can compare them directly.
+</Callout>
+
+## Practice / lab
+
+- Open a pipe with `O_NONBLOCK` and observe `EAGAIN` when there's no data.
+- Write a TCP echo server that handles the listener and all clients in one `poll()` loop.
+- Rewrite it with `epoll` (level-triggered), then try edge-triggered with a proper drain loop.
+- Use the `epoll_wait` timeout to run a periodic task alongside I/O handling.
+
+## Homework
+
+- [NET-2: Multiplexed Sqrt Server](/system-programming/homeworks/networking/multiplexed-sqrt-server) —
+  a single-threaded `epoll` server handling many clients concurrently.
+
+## References & resources
+
+**Required**
+
+- [Beej's Guide — `select()`](https://beej.us/guide/bgnet/html/#select)
+- [`epoll(7)`](https://man7.org/linux/man-pages/man7/epoll.7.html) — authoritative reference
+- The Linux Programming Interface (Kerrisk) — Ch. 63: Alternative I/O Models
+- [The C10K problem](http://www.kegel.com/c10k.html)
+
+**Optional / enrichment**
+
+- [`select(2)`](https://man7.org/linux/man-pages/man2/select.2.html) · [`poll(2)`](https://man7.org/linux/man-pages/man2/poll.2.html) · [`epoll_ctl(2)`](https://man7.org/linux/man-pages/man2/epoll_ctl.2.html) · [`epoll_wait(2)`](https://man7.org/linux/man-pages/man2/epoll_wait.2.html)
+- [epoll in 3 easy steps](https://suchprogramming.com/epoll-in-3-easy-steps/)
+- [Efficient IO with io_uring (LWN)](https://lwn.net/Articles/776703/) · [liburing](https://github.com/axboe/liburing)
+
+## Self-check
+
+1. What problem does I/O multiplexing solve, and why aren't blocking or busy-polling acceptable?
+2. What does `EAGAIN` mean on a non-blocking descriptor?
+3. Why does `epoll` scale better than `select`/`poll` as connections grow?
+4. What is the difference between level-triggered and edge-triggered `epoll`?
+5. Why must edge-triggered mode use non-blocking descriptors and drain until `EAGAIN`?

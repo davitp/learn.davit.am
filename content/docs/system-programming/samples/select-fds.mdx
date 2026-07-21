@@ -1,0 +1,100 @@
+---
+title: "Using select"
+description: "The sample demonstrates how to use select() to monitor one or multiple file descriptors at the same time."
+---
+
+The sample demonstrates how to use **select()** to monitor one or multiple file descriptors at the same time. 
+The program watches the **stdin** (keyboard input). It reacts to whenever it becomes ready first, and times out after N seconds of inactivity.
+
+Note that the `fd_set` must be **rebuilt before every call** to `select()` because the kernel overwrites it to indicate which descriptors are ready.
+
+```c
+#include <iostream>
+#include <cstring>
+#include <cerrno>
+#include <unistd.h>
+#include <sys/select.h>
+ 
+#define BUFFER_SIZE 256
+ 
+/**
+ * The example program to read from stdin (0) descriptor in a non-blocking mode using select()
+ */
+int main() {
+  
+	// prepare a buffer for reading; +1 to always have room for the null terminator
+	char buffer[BUFFER_SIZE + 1];
+
+	// a set of file descriptors to monitor for read operations
+	fd_set readFds;
+ 
+	// the highest file descriptor we will monitor is stdin, so max fd = stdin + 1
+	int maxFd = STDIN_FILENO + 1;
+
+	// we will read in an infinite loop
+    while (true) {
+ 
+		// reset file descriptor set as they are modified after every select()
+        FD_ZERO(&readFds);
+
+		// mark the stdin file (0) for monitoring 
+		FD_SET(STDIN_FILENO, &readFds);
+
+		// initialize a timeout for 3 seconds
+		struct timeval timeout;
+		timeout.tv_sec = 3;
+		timeout.tv_usec = 0;
+ 
+        // block until at least one descriptor is ready, or the timeout expires
+		// in this example, we monitor only read set (with one element) and given timeout
+        int totalReady = select(maxFd, &readFds, NULL, NULL, &timeout);
+
+		// an error occurred, so it needs to be handled
+        if (totalReady == -1) {
+            std::cerr << "Select failed: " << strerror(errno) << std::endl;
+            break;
+        }
+ 
+		// neither descriptor became ready before the timeout
+        if (totalReady == 0) {
+            std::cout << "No file became available for reading/writing within the given timeout" << std::endl;
+            continue;
+        }
+
+		// in general we check all the descriptors provided to find which ones are ready
+		for(int i = 0; i < maxFd; ++i){
+
+			// checking if the current file is marked as ready to read
+			if(FD_ISSET(i, &readFds)){
+
+				// we can safely read without blocking
+				int totalBytes = read(i, buffer, BUFFER_SIZE);
+
+				// null-terminate at the last read byte and print
+				buffer[totalBytes] = '\0';
+				std::cout << "Read from the file: " << buffer << std::endl;
+			}
+		}
+    }
+ 
+    return 0;
+}
+```
+
+The file can be compiled and executed as follows:
+```sh
+g++ select.cpp -o select
+./select
+```
+
+With no activity the program prints a timeout message every N seconds. Typing into the terminal triggers the corresponding handler:
+```
+No file became available for reading/writing within the given timeout
+No file became available for reading/writing within the given timeout
+hello
+Read from the file: hello
+
+No file became available for reading/writing within the given timeout
+something else
+Read from the file: something else
+```

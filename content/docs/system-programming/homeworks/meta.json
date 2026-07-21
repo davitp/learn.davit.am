@@ -1,0 +1,11 @@
+{
+  "title": "Homeworks",
+  "pages": [
+    "environment",
+    "file-systems",
+    "processes",
+    "threads",
+    "ipc",
+    "networking"
+  ]
+}

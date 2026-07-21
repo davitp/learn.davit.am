@@ -1,0 +1,75 @@
+---
+title: Classical Sync Problems
+description: Canonical concurrency puzzles — producer–consumer, readers–writers, and dining philosophers — and how synchronization primitives solve them.
+---
+
+With mutexes, semaphores, and condition variables in hand, this week applies them to the
+**classic** synchronization problems. Each one is a small, canonical puzzle that captures a
+real coordination challenge — and each teaches a reusable technique.
+
+<MiroEmbed widget="3458764647458881808" title="Classical sync problems — course slides" />
+
+## Producer–consumer (bounded buffer)
+
+**Producers** add items to a fixed-size buffer; **consumers** remove them. The buffer must
+never **overflow** (producers outrun consumers) or **underflow** (consumers outrun producers).
+
+The classic solution uses two counting **semaphores** — one counting free slots, one counting
+filled slots — plus a **mutex** protecting the buffer itself. A condition-variable version
+achieves the same by having producers wait while "full" and consumers wait while "empty". It
+demonstrates **resource counting**, **mutual exclusion**, and **condition signaling**.
+
+## Readers–writers
+
+Many **readers** may access shared data at once, but a **writer** needs exclusive access. The
+challenge is coordinating the two without conflicts — and without letting one side **starve**
+the other. Solutions track a reader count (guarded by a mutex) and gate writers with a
+semaphore, choosing a **reader-preference** or **writer-preference** policy depending on which
+side you favour. It's the canonical lesson in **fairness** and **starvation**.
+
+## Dining philosophers
+
+Five philosophers sit around a table; between each pair is one fork, and each philosopher needs
+**both** neighbouring forks to eat. If everyone grabs their left fork at once, everyone waits
+forever for a right fork that never comes — a **deadlock** from circular waiting.
+
+The simplest fix **breaks the symmetry**: even-numbered philosophers pick up the left fork
+first, odd-numbered ones the right — so the cycle can't form. Other strategies include a
+**resource hierarchy** (always acquire the lower-numbered fork first), an **arbitrator**
+(a waiter who hands out forks), and monitor- or token-based schemes. It's the canonical lesson
+in **deadlock prevention** and **symmetry breaking**.
+
+<Callout title="See it in code">
+Both problems are implemented in full: the [Bounded buffer](/system-programming/samples/bounded-buffer)
+sample (semaphore and condition-variable versions) and the
+[Dining philosophers](/system-programming/samples/dining-philosophers) sample (the deadlocking
+naïve version and the odd/even fix).
+</Callout>
+
+## Practice / lab
+
+- Implement producer–consumer with counting semaphores; then redo it with a condition variable.
+- Reproduce the dining-philosophers deadlock, then fix it with the odd/even strategy.
+- Implement readers–writers with reader preference; reason about when writers could starve.
+
+## References & resources
+
+**Required**
+
+- Operating Systems: Three Easy Pieces — Semaphores & synchronization examples
+- Modern Operating Systems (Tanenbaum) — Processes & Threads
+- [Readers–writers problem (Wikipedia)](https://en.wikipedia.org/wiki/Readers%E2%80%93writers_problem)
+
+**Optional / enrichment**
+
+- [`pthreads(7)`](https://man7.org/linux/man-pages/man7/pthreads.7.html)
+- [`sem_overview(7)`](https://man7.org/linux/man-pages/man7/sem_overview.7.html)
+- [Dining philosophers problem (Wikipedia)](https://en.wikipedia.org/wiki/Dining_philosophers_problem)
+
+## Self-check
+
+1. What causes deadlock in the dining philosophers problem, and how does the odd/even strategy prevent it?
+2. Which primitives solve producer–consumer, and what does each one track?
+3. How can starvation arise in readers–writers?
+4. What does "symmetry breaking" mean in the context of deadlock prevention?
+5. Why is a mutex still needed around the buffer even when using counting semaphores?

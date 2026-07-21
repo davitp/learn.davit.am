@@ -1,0 +1,107 @@
+---
+title: Pipes and FIFOs
+description: Unix pipes as unidirectional byte streams — anonymous pipes for related processes and named pipes (FIFOs) for unrelated ones.
+---
+
+A **pipe** is a unidirectional byte stream: one process writes into it, another reads out. It
+is the oldest form of Unix IPC and the mechanism behind the shell's `|` operator. This week
+covers both **anonymous pipes** (between related processes) and **named pipes / FIFOs**
+(between any processes).
+
+<MiroEmbed widget="3458764649767252493" title="Pipes and FIFOs — course slides" />
+
+## What is a pipe?
+
+Pipes embody the Unix philosophy — small programs composed through text streams. Key
+properties:
+
+- **Unidirectional** — data flows one way; for two-way communication you use two pipes.
+- **Byte stream** — no message boundaries, just a continuous stream of bytes.
+- **Buffered** — the kernel holds the data (typically **64 KiB** on Linux).
+- **Self-synchronizing** — `read` blocks when the pipe is empty; `write` blocks when the
+  buffer is full.
+- **EOF** — `read` returns `0` once *all* write ends are closed.
+
+The shell wires pipes for you: in `ls | grep txt | wc -l`, each `|` connects one command's
+stdout to the next command's stdin.
+
+## Anonymous pipes
+
+Created with `pipe(fd)`, which fills a two-element array: `fd[0]` is the **read** end and
+`fd[1]` is the **write** end. Because file descriptors are inherited across `fork`, this
+connects a **parent and child**:
+
+```c
+int fd[2];
+pipe(fd);
+if (fork() == 0) {          // child: reads
+    close(fd[1]);           // close unused write end
+    char buf[64];
+    ssize_t n = read(fd[0], buf, sizeof buf);
+    write(STDOUT_FILENO, buf, n);
+    close(fd[0]);
+} else {                    // parent: writes
+    close(fd[0]);           // close unused read end
+    write(fd[1], "hello", 5);
+    close(fd[1]);           // reader now sees EOF
+}
+```
+
+<Callout title="Always close unused ends">
+Each process must close the pipe end it doesn't use. If a write end stays open somewhere, the
+reader never sees EOF and blocks forever; leaked descriptors also waste resources.
+</Callout>
+
+Combining `pipe` + `fork` + `dup2` + `exec` is exactly how a shell implements
+`command1 | command2` — redirect `command1`'s stdout into the pipe and `command2`'s stdin out
+of it.
+
+## Named pipes (FIFOs)
+
+A **FIFO** is a pipe with a name in the filesystem, created by `mkfifo(path, mode)` (or the
+`mkfifo` shell command). It shows up in `ls -l` with type **`p`**, and it lets **unrelated**
+processes talk — any process that can open the path can use it:
+
+```sh
+mkfifo /tmp/chan
+cat < /tmp/chan          # reader (blocks until a writer opens it)
+echo "hi" > /tmp/chan    # writer, from another terminal
+```
+
+Opening a FIFO **blocks** until the other end is also opened, unless you pass `O_NONBLOCK`.
+The data still lives in kernel memory; only the *name* persists on disk.
+
+## Practice / lab
+
+- Send a message parent → child through an anonymous pipe, closing unused ends on both sides.
+- Use **two** pipes for bidirectional communication: parent sends a number, child squares it
+  and sends it back.
+- Reimplement `command1 | command2` with `pipe`, `fork`, `dup2`, and `exec`.
+- Create a FIFO with `mkfifo` and exchange messages between two separate programs.
+
+## Homework
+
+- [IPC-2: Prime Calculator](/system-programming/homeworks/ipc/prime-calculator) — pass a number
+  to a child over an anonymous pipe and read the result back.
+
+## References & resources
+
+**Required**
+
+- [Pipes in Linux — `pipe()` (GeeksforGeeks)](https://www.geeksforgeeks.org/pipe-system-call/)
+- [Pipe, fork and exec (video)](https://www.youtube.com/watch?v=NkfIUo_Qq4c)
+- The Linux Programming Interface (Kerrisk) — Ch. 44: Pipes and FIFOs
+
+**Optional / enrichment**
+
+- [`pipe(2)`](https://man7.org/linux/man-pages/man2/pipe.2.html) · [`mkfifo(3)`](https://man7.org/linux/man-pages/man3/mkfifo.3.html) · [`fifo(7)`](https://man7.org/linux/man-pages/man7/fifo.7.html)
+- [Understanding pipes in Unix (Baeldung)](https://www.baeldung.com/linux/pipes)
+- [How Unix pipes are implemented (LWN)](https://lwn.net/Articles/118750/)
+
+## Self-check
+
+1. What is the difference between an anonymous pipe and a FIFO?
+2. Why must both processes close the pipe ends they don't use?
+3. What happens when you write to a pipe with no readers?
+4. What does `read` return once all write ends are closed?
+5. How do you achieve bidirectional communication with pipes?

@@ -1,0 +1,138 @@
+---
+title: Compiling C/C++
+description: How source code becomes an executable — the preprocess, compile, assemble, and link pipeline, libraries, memory layout, and make.
+---
+
+This week is about the toolchain: how a `.c` or `.cpp` file becomes a running program. We
+trace each stage of the build by hand with `gcc`/`g++`, look at what the linker produces, and
+then let `make` automate the whole thing.
+
+<MiroEmbed widget="3458764647122233661" title="Compiling C/C++ — course slides" />
+
+## Anatomy of a program
+
+A C/C++ source file mixes three kinds of things: **preprocessor directives** (`#include`,
+`#define`), **declarations** (what exists — e.g. a function prototype in a header), and
+**definitions** (the actual implementation). Declarations usually live in headers (`.h`) and
+definitions in source files (`.c` / `.cpp`); the build stitches them together.
+
+## The four stages
+
+Compilation is a pipeline. Each stage has its own tool and its own output file:
+
+```text
+hello.c ──▶ hello.i ──▶ hello.s ──▶ hello.o ──▶ hello
+   preprocess   compile     assemble    link
+     (cpp)       (cc1)        (as)       (ld)
+```
+
+You can stop after any stage with the right `gcc` flag:
+
+```sh
+gcc -E hello.c -o hello.i   # 1. preprocess: expand #include / #define / macros
+gcc -S hello.i -o hello.s   # 2. compile:    C  → assembly
+gcc -c hello.s -o hello.o   # 3. assemble:   assembly → object code (ELF .o)
+gcc    hello.o -o hello     # 4. link:       object files + libraries → executable
+```
+
+In practice you run `gcc hello.c -o hello` and the driver performs all four steps for you.
+
+<Callout title="Inspecting the artifacts">
+`file hello.o` tells you what a file is, `nm hello.o` lists its symbols, and
+`objdump -d hello.o` disassembles it back to assembly — handy for seeing what the compiler
+produced.
+</Callout>
+
+## Linking and libraries
+
+The **linker** resolves the symbols your code refers to (like `printf`) against libraries.
+There are two ways to link them:
+
+- **Static** (`.a` archives) — the code is copied *into* your executable at link time. Bigger
+  binary, no runtime dependency. Build one with `ar`, link with `-static`.
+- **Dynamic / shared** (`.so`) — the executable only records *which* library it needs; the
+  code is loaded at run time and shared between programs. Compile the objects with `-fPIC`.
+
+`ldd hello` shows which shared libraries an executable will load.
+
+## Memory layout
+
+When the program runs, the loader maps it into an address space with distinct segments:
+
+```text
+high ┌────────────────────┐
+     │ stack   (grows ↓)  │  local variables, call frames
+     │        ...         │
+     │ heap    (grows ↑)  │  malloc / new
+     │ bss                │  uninitialised globals
+     │ data               │  initialised globals
+ low │ text               │  the machine code (read-only)
+     └────────────────────┘
+```
+
+## Automating with make
+
+Typing the commands by hand gets old fast. A **Makefile** describes *targets*, their
+*dependencies*, and the *recipe* to build them — and `make` rebuilds only what changed:
+
+```makefile
+CC = gcc
+CFLAGS = -Wall -O2
+
+all: hello
+
+hello: hello.o
+	$(CC) hello.o -o hello
+
+hello.o: hello.c
+	$(CC) $(CFLAGS) -c hello.c
+
+clean:
+	rm -f *.o hello
+```
+
+`make` builds the `all` target; `make clean` removes the build output.
+
+<Callout title="Go deeper">
+The [Compilation and build process](/system-programming/guides/compilation) guide walks
+through every stage on a real program, and the [Using Makefile](/system-programming/samples/makefile)
+sample shows a multi-file build end to end.
+</Callout>
+
+## Practice / lab
+
+- Run the four `gcc` commands above on a Hello World and inspect each artifact (`.i`, `.s`,
+  `.o`) with `less` and `file`.
+- List symbols with `nm hello.o` and disassemble with `objdump -d hello.o`.
+- Write a Makefile with `all` and `clean` targets; watch `make` skip unchanged files.
+- Compare `gcc hello.c -o hello` with `gcc -static hello.c -o hello` and check both with
+  `ldd`.
+
+## Homework
+
+- [ENV-2: Complex numbers and sorting](/system-programming/homeworks/environment/complex-number) —
+  a multi-file C++ program built with a Makefile.
+
+## References & resources
+
+**Required**
+
+- [GCC documentation](https://gcc.gnu.org/onlinedocs/)
+- [GNU Make manual](https://www.gnu.org/software/make/manual/make.html)
+- [Compilation process in C (GeeksforGeeks)](https://www.geeksforgeeks.org/compilation-process-in-c/)
+- [Understanding the C/C++ compilation process (video)](https://www.youtube.com/watch?v=ksJ9bdSX5Yo)
+
+**Optional / enrichment**
+
+- [Learn Makefiles by example](https://makefiletutorial.com/)
+- [Memory layout of a C program](https://www.hackerearth.com/practice/notes/memory-layout-of-c-program/)
+- [9 essential GNU binutils tools](https://opensource.com/article/19/10/gnu-binutils)
+- [C++: препроцессор, компилятор, компоновщик (RUS, video)](https://www.youtube.com/watch?v=Y6U9662gaa8)
+
+## Self-check
+
+1. What does the preprocessor do, and what is its output?
+2. Which stage produces the `.o` file, and what does it contain?
+3. How does static linking differ from dynamic linking?
+4. Which tool lists the symbols inside an object file?
+5. Why are Makefiles useful once a project has more than one source file?

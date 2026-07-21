@@ -1,0 +1,122 @@
+---
+title: Processes
+description: The process model in Linux — process attributes and states, virtual memory, and creating processes with fork, exec, and wait.
+---
+
+A **process** is a running instance of a program. This week covers how Linux represents
+processes, how each one gets its own private view of memory, and the three system calls —
+`fork`, `exec`, and `wait` — that create and manage them.
+
+<MiroEmbed widget="3458764647124145331" title="Processes — course slides" />
+
+## What is a process?
+
+A *program* is a file on disk; a *process* is that program **executing**, with its own state:
+a **PID** (process id), its parent's **PPID**, credentials (UID/GID), an open file-descriptor
+table, and a memory layout. Over its life a process moves through several **states**:
+
+- **Running / Runnable** — executing, or ready to
+- **Sleeping** — waiting for an event (I/O, a timer)
+- **Stopped** — suspended (e.g. by a signal)
+- **Zombie** — finished, but its exit status hasn't been collected yet
+
+Processes form a **tree**: every process has a parent, and `init`/`systemd` (PID 1) is the
+ancestor of all. Inspect it with `ps`, `pstree`, `top`, or `htop`.
+
+## Virtual memory
+
+Each process runs as if it owns the whole machine: the kernel gives it a private **virtual
+address space**, isolated from every other process. On a 64-bit system that space is split
+between user space and kernel space, and it is organized into segments:
+
+```text
+high ┌────────────────────┐
+     │ stack   (grows ↓)  │  call frames, locals
+     │ memory-mapped      │  shared libs, mmap
+     │ heap    (grows ↑)  │  malloc / new
+     │ bss / data         │  globals
+ low │ text               │  code
+     └────────────────────┘
+```
+
+The kernel maps virtual pages (typically **4 KB**) to physical frames through **page tables**.
+This is what keeps one process from reading another's memory, and it makes tricks like
+**copy-on-write** possible — which is what makes `fork` cheap.
+
+## Creating a process: `fork()`
+
+`fork()` **clones** the calling process. The magic is that it returns *twice*: `0` in the new
+**child**, and the child's PID in the **parent**:
+
+```c
+pid_t pid = fork();
+if (pid == 0) {
+    // child
+} else if (pid > 0) {
+    // parent, pid is the child's PID
+} else {
+    perror("fork");
+}
+```
+
+Thanks to copy-on-write, the child gets a lazy copy of the parent's memory — pages are only
+duplicated when one side writes to them.
+
+## Running a program: `exec()`
+
+`fork` gives you a *copy* of the same program. To run a **different** program, the child calls
+one of the `exec*()` functions, which **replaces** its memory image with a new executable. On
+success `exec` never returns — the old program is gone.
+
+## Waiting: `wait()` and zombies
+
+A parent calls `wait()` / `waitpid()` to block until a child finishes and to collect its exit
+status. If the parent never waits, the finished child lingers as a **zombie**; if the parent
+dies first, the child is **orphaned** and re-parented to `init`.
+
+Put together, this is the **fork + exec + wait** pattern every shell uses to run a command:
+
+```text
+parent ── fork() ──┬── parent: waitpid(child) ─────────────▶ continue
+                   └── child:  exec("ls") ─▶ becomes ls ─▶ exit
+```
+
+<Callout title="See it in code">
+The [Creating a process](/system-programming/samples/create-process) sample demonstrates
+`fork`, parent/child differentiation, and `waitpid` end to end.
+</Callout>
+
+## Practice / lab
+
+- Inspect the process tree with `pstree` and `ps -ef`; find PIDs and PPIDs.
+- Write a program that `fork`s and prints from both parent and child (note the PIDs).
+- Combine `fork` + `exec` to run an external command, then `waitpid` for it.
+- Deliberately create a zombie (parent that never waits) and observe it in `ps`.
+
+## Homework
+
+- [PS-1: Do command](/system-programming/homeworks/processes/do-command)
+- [PS-2: Interactive shell](/system-programming/homeworks/processes/interactive-shell)
+
+## References & resources
+
+**Required**
+
+- The Linux Programming Interface (Kerrisk) — Ch. 24–26: process creation, termination, execution
+- [ECE 252 — Processes in UNIX (video)](https://www.youtube.com/watch?v=RLl4vmErFgM)
+- [The exec family of functions (Baeldung)](https://www.baeldung.com/linux/exec-functions)
+- [The `fork` function in C (video)](https://www.youtube.com/watch?v=cex9XrZCU14)
+
+**Optional / enrichment**
+
+- [`fork(2)`](https://man7.org/linux/man-pages/man2/fork.2.html) · [`wait(2)`](https://man7.org/linux/man-pages/man2/wait.2.html) · [`execve(2)`](https://man7.org/linux/man-pages/man2/execve.2.html)
+- [`fork`, `exec`, `wait` explained (GeeksforGeeks)](https://www.geeksforgeeks.org/fork-exec-wait-system-call/)
+- [Linux processes and threads (IBM Developer)](https://developer.ibm.com/articles/l-linux-process-and-threads/)
+
+## Self-check
+
+1. What is the difference between a program and a process?
+2. Why does `fork()` return two different values?
+3. What does `exec()` do, and why doesn't it return on success?
+4. What is a zombie process, and how is it avoided?
+5. What happens to a child whose parent exits before it does?

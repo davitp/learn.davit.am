@@ -1,0 +1,101 @@
+---
+title: Networking
+description: The networking fundamentals behind sockets — the OSI and TCP/IP models, MAC/IP/port addressing, TCP vs UDP, and DNS.
+---
+
+Before we write network programs, we need the concepts underneath them: how machines are
+addressed, how data is layered as it crosses a network, and the difference between TCP and UDP.
+This week is the groundwork for [sockets](/system-programming/topics/sockets).
+
+<MiroEmbed widget="3458764655449764929" title="Networking — course slides" />
+
+## What is a network?
+
+A **network** is a set of interconnected devices (nodes) — computers, routers, switches — that
+exchange data over some medium (copper, fiber, or wireless). The **Internet** is a global
+network of networks. To make devices from different vendors interoperate, networking is
+described as a stack of **layers**, each handling one concern and using the layer below it.
+
+## Two layered models
+
+The **OSI model** is the conceptual 7-layer reference; the **TCP/IP model** is the practical
+4-layer stack the Internet actually runs on:
+
+| OSI layer | PDU | TCP/IP layer | Examples |
+| --- | --- | --- | --- |
+| 7 Application / 6 Presentation / 5 Session | data | Application | HTTP, DNS, SSH |
+| 4 Transport | segment | Transport | TCP, UDP |
+| 3 Network | packet | Internet | IP, ICMP, ARP |
+| 2 Data Link / 1 Physical | frame / bits | Network access | Ethernet, Wi-Fi |
+
+As data goes down the stack it is **encapsulated** — each layer wraps the one above:
+
+```text
+[ application data ]                        (L7)
+[ TCP header | data ]            segment    (L4)
+[ IP header | segment ]          packet     (L3)
+[ Eth header | packet | CRC ]    frame      (L2)
+```
+
+## Addressing at each level
+
+Each layer identifies things its own way:
+
+- **MAC address** (L2) — a 48-bit hardware id like `00:1A:2B:3C:4D:5E`, used within one LAN.
+- **IP address** (L3) — a logical, routable address. **IPv4** is 32 bits (`192.168.1.100`);
+  `127.0.0.1` is loopback, `0.0.0.0` means "any interface". Private ranges (`10/8`,
+  `172.16/12`, `192.168/16`) live behind **NAT**; **IPv6** is the 128-bit successor.
+- **Port** (L4) — a 16-bit number identifying an application. An IP **plus** a port is a
+  **socket**: `192.168.1.100:8080`. Well-known ports include HTTP `80`, HTTPS `443`, SSH `22`,
+  DNS `53`.
+
+## TCP vs. UDP
+
+The transport layer offers two very different services:
+
+| | TCP | UDP |
+| --- | --- | --- |
+| Connection | connection-oriented | connectionless |
+| Reliability | guaranteed, in order | best-effort |
+| Overhead | higher | minimal |
+| Typical use | HTTP, SSH, file transfer | DNS, streaming, games, VoIP |
+
+TCP establishes a connection with the **three-way handshake** — `SYN` → `SYN-ACK` → `ACK` —
+then guarantees ordered, reliable delivery with flow and congestion control. UDP just fires
+datagrams and leaves reliability to the application.
+
+## Names: DNS
+
+People use names, not numbers. **DNS** resolves a domain like `github.com` to an IP address
+through a hierarchy (root → TLD → authoritative servers). Common record types: `A` (IPv4),
+`AAAA` (IPv6), `CNAME` (alias), `MX` (mail). Inspect it with `dig` or `nslookup`.
+
+## Practice / lab
+
+- Inspect your setup: `ip addr`, `ip route`, `ip link`; find your IP, gateway, and MAC.
+- Resolve names with `dig google.com` and `dig +trace google.com`; read `/etc/resolv.conf`.
+- Test reachability with `ping` and the path with `traceroute`.
+- List listening sockets with `ss -tuln`; capture a TCP handshake with `tcpdump`.
+
+## References & resources
+
+**Required**
+
+- [OSI model explained (video)](https://www.youtube.com/watch?v=vv4y_uOneC0)
+- [TCP vs UDP (video)](https://www.youtube.com/watch?v=uwoD5YsGACg)
+- [How DNS works (video)](https://www.youtube.com/watch?v=mpQZVYPuDGU)
+- [Beej's Guide to Network Programming](https://beej.us/guide/bgnet/)
+
+**Optional / enrichment**
+
+- [Computer Networking: A Top-Down Approach (Kurose & Ross)](https://gaia.cs.umass.edu/kurose_ross/index.php)
+- Stevens, Unix Network Programming, Vol. 1 — the Sockets API
+- [`ip(8)`](https://man7.org/linux/man-pages/man8/ip.8.html) · [`ss(8)`](https://man7.org/linux/man-pages/man8/ss.8.html) · [`tcpdump(8)`](https://man7.org/linux/man-pages/man8/tcpdump.8.html)
+
+## Self-check
+
+1. What is the difference between a MAC address and an IP address?
+2. At which layer do switches operate, and at which do routers?
+3. What makes up a socket, and what is a port for?
+4. Describe the TCP three-way handshake. When would you choose UDP instead?
+5. What does DNS do, and what is an `A` record?
