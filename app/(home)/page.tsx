@@ -8,11 +8,13 @@ import { SiteFooter } from '@/components/site-footer';
 const description =
   'Course notes, worked code samples, guides and assorted learnings by Davit Petrosyan — a place to learn systems and software by doing.';
 
+const ogImage = '/og/home/image.png';
+
 export const metadata: Metadata = {
   description,
   alternates: { canonical: '/' },
-  openGraph: { url: '/', description },
-  twitter: { description },
+  openGraph: { url: '/', description, images: [ogImage] },
+  twitter: { description, images: [ogImage] },
 };
 
 export default function HomePage() {

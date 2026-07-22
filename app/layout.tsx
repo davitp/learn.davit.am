@@ -9,8 +9,7 @@ const inter = Inter({
   subsets: ['latin'],
 });
 
-const description =
-  'Learning materials and university course notes by Davit Petrosyan.';
+const description = 'University course notes, worked code samples, and step-by-step guides.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -29,7 +28,7 @@ export const metadata: Metadata = {
     description,
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: appName,
     description,
   },

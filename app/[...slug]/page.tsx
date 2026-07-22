@@ -12,6 +12,43 @@ import { CourseJsonLd } from '@/components/structured-data';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import type { Metadata } from 'next';
 
+
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return source.generateParams();
+}
+
+export async function generateMetadata(
+  props: PageProps<'/[...slug]'>,
+): Promise<Metadata> {
+  const params = await props.params;
+  const page = source.getPage(params.slug);
+  if (!page) notFound();
+
+  const url = `${page.url}/`;
+  const ogImage = `/og${page.url}/image.png`;
+
+  return {
+    title: page.data.title,
+    description: page.data.description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: 'article',
+      url,
+      title: page.data.title,
+      description: page.data.description,
+      images: [ogImage],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: page.data.title,
+      description: page.data.description,
+      images: [ogImage],
+    },
+  };
+}
+
 export default async function Page(props: PageProps<'/[...slug]'>) {
   const params = await props.params;
   const page = source.getPage(params.slug);
@@ -34,39 +71,4 @@ export default async function Page(props: PageProps<'/[...slug]'>) {
       </DocsBody>
     </DocsPage>
   );
-}
-
-// Fully static: only the paths from generateStaticParams exist; any other path
-// falls through to the 404. Required for the catch-all under `output: export`.
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  return source.generateParams();
-}
-
-export async function generateMetadata(
-  props: PageProps<'/[...slug]'>,
-): Promise<Metadata> {
-  const params = await props.params;
-  const page = source.getPage(params.slug);
-  if (!page) notFound();
-
-  const url = `${page.url}/`;
-
-  return {
-    title: page.data.title,
-    description: page.data.description,
-    alternates: { canonical: url },
-    openGraph: {
-      type: 'article',
-      url,
-      title: page.data.title,
-      description: page.data.description,
-    },
-    twitter: {
-      card: 'summary',
-      title: page.data.title,
-      description: page.data.description,
-    },
-  };
 }
